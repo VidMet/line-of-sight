@@ -1,37 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="no">
 <head>
+    <meta charset="UTF-8">
     <title>Siktkontroll Utvidelse</title>
+    <!-- Viktig: SDK må lastes først -->
     <script src="https://connect-extensions.trimble.com/js/2.0.0/trimble.connect.workspace.api.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 15px; background: #f5f5f5; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; background: #ffffff; color: #333; }
+        h3 { border-bottom: 2px solid #0078d4; padding-bottom: 5px; margin-top: 0; }
         .control-group { margin-bottom: 15px; }
-        label { display: block; font-size: 12px; font-weight: bold; }
-        input { width: 100%; margin-top: 5px; }
-        button { width: 100%; padding: 10px; margin-top: 10px; cursor: pointer; background: #0078d4; color: white; border: none; border-radius: 4px; }
+        label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            background: #0078d4; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            cursor: pointer;
+            transition: background 0.2s;
+        }
         button:hover { background: #005a9e; }
-        .result { margin-top: 20px; padding: 10px; border-radius: 4px; display: none; }
-        .ok { background: #dff6dd; color: #107c10; }
-        .fail { background: #fde7e9; color: #a4262c; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result { 
+            margin-top: 20px; 
+            padding: 12px; 
+            border-radius: 4px; 
+            display: none; 
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .ok { background: #dff6dd; color: #107c10; border: 1px solid #107c10; }
+        .fail { background: #fde7e9; color: #a4262c; border: 1px solid #a4262c; }
+        #status { font-size: 11px; color: #666; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h3>Siktkontroll v1.0</h3>
+    <h3>Siktkontroll</h3>
     
     <div class="control-group">
-        <label>Øyehøyde (meter over bakken):</label>
+        <label>Øyehøyde (m over bakken):</label>
         <input type="number" id="eyeHeight" value="1.1" step="0.1">
     </div>
 
     <div class="control-group">
-        <label>Objekthøyde (meter over bakken):</label>
+        <label>Objekthøyde (m over bakken):</label>
         <input type="number" id="objHeight" value="0.5" step="0.1">
     </div>
 
-    <button id="runCheck">Start ny kontroll</button>
+    <button id="runCheck" disabled>Venter på tilkobling...</button>
+    <div id="status">Status: Initialiserer...</div>
 
     <div id="resultBox" class="result"></div>
 
+    <!-- Logikken lastes til slutt -->
     <script src="app.js"></script>
 </body>
 </html>
