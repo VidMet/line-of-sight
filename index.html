@@ -2,7 +2,7 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8"/>
-  <title>Siktkontroll V8</title>
+  <title>Siktlinje V9</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <style>
@@ -17,8 +17,6 @@
       --muted:     #7d8590;
       --green:     #3fb950;
       --green-dim: #1a3a22;
-      --yellow:    #d29922;
-      --yellow-dim:#2d2205;
       --red:       #f85149;
       --red-dim:   #3a1212;
       --blue:      #58a6ff;
@@ -83,12 +81,13 @@
       cursor: pointer;
       transition: opacity .15s, transform .1s;
       white-space: nowrap;
+      width: 100%;
     }
     .btn:disabled { opacity: .4; cursor: not-allowed; }
     .btn:not(:disabled):hover { opacity: .85; }
     .btn:not(:disabled):active { transform: scale(.97); }
     .btn-primary { background: var(--blue); color: #000; }
-    .btn-danger  { background: #21262d; color: var(--red); border: 1px solid #3a1c1c; }
+    .btn-danger  { background: #21262d; color: var(--red); border: 1px solid #3a1c1c; margin-top: 10px; }
 
     #statusBar {
       font-family: var(--mono);
@@ -101,7 +100,7 @@
     }
     #statusBar.ok    { background: var(--green-dim); color: var(--green); border-color: #1a3a22; }
     #statusBar.error { background: var(--red-dim);   color: var(--red);   border-color: #3a1212; }
-    #statusBar.warn  { background: var(--yellow-dim); color: var(--yellow); border-color: #3a2d05; }
+    #statusBar.warn  { background: var(--yellow-dim); color: #d29922; border-color: #3a2d05; }
 
     #modelBar {
       background: var(--surface);
@@ -138,110 +137,44 @@
       gap: 14px;
     }
 
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 14px;
-    }
-    .card .label {
-      font-size: 10px;
-      color: var(--muted);
-      font-family: var(--mono);
-      text-transform: uppercase;
-      letter-spacing: .5px;
-    }
-    .card .value {
-      font-size: 28px;
-      font-weight: 800;
-      line-height: 1.1;
-      margin-top: 4px;
-    }
-    .card .sub {
-      font-size: 10px;
-      color: var(--muted);
-      font-family: var(--mono);
-      margin-top: 3px;
-    }
-    .card.green  { border-color: #1e4028; }
-    .card.green .value { color: var(--green); }
-    .card.red    { border-color: #3a1212; }
-    .card.red .value { color: var(--red); }
-    .card.blue   { border-color: #0d2044; }
-    .card.blue .value { color: var(--blue); }
-
     .panel {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 10px;
       overflow: hidden;
+      padding: 14px;
     }
-    .panel-header {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .panel-header h3 {
-      font-size: 13px;
-      font-weight: 700;
-      flex: 1;
-    }
-
-    .table-wrap { overflow: auto; max-height: 340px; }
-    table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    thead th {
-      background: var(--surface2);
-      color: var(--muted);
-      font-family: var(--mono);
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: .4px;
-      padding: 8px 10px;
-      text-align: left;
-      position: sticky;
-      top: 0;
-    }
-    tbody tr { border-bottom: 1px solid #1c2128; }
-    tbody td {
-      padding: 8px 10px;
-      font-family: var(--mono);
-      font-size: 11px;
+    
+    .panel h3 { font-size: 13px; margin-bottom: 8px; }
+    
+    .instructions {
+      font-size: 12px;
       color: var(--ink);
+      line-height: 1.6;
     }
-    .status-pill {
-      display: inline-block;
-      font-family: var(--mono);
-      font-size: 10px;
-      padding: 3px 7px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-    }
-    .status-pill.ok { background: var(--green-dim); color: var(--green); border-color: #1e4028; }
-    .status-pill.miss { background: var(--red-dim); color: var(--red); border-color: #3a1212; }
+    .instructions ol { margin-left: 20px; color: var(--muted); }
+    .instructions b { color: var(--ink); }
 
-    @keyframes fadeUp {
-      from { opacity:0; transform:translateY(6px); }
-      to   { opacity:1; transform:none; }
+    .card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      text-align: center;
+      margin-top: 15px;
     }
-    .anim { animation: fadeUp .3s ease both; }
+    .card .value { font-size: 24px; font-weight: 800; color: var(--green); }
+    .card .sub { font-size: 10px; color: var(--muted); font-family: var(--mono); }
   </style>
 </head>
 <body>
 
 <header>
   <div class="header-title">
-    <h1>Siktkontroll V8</h1>
-    <p>Utfører siktkontroll med raycasting langs valgt linje. Grønn = fri sikt, Rød = hindret sikt.</p>
+    <h1>Siktlinje V9 (Visuell)</h1>
+    <p>Gjør to punktmålinger om til en 3D-siktlinje med høyde-offset.</p>
   </div>
   <span class="badge" id="modelBadge">Ikke tilkoblet</span>
-  <button class="btn btn-primary" id="btnStart" disabled>▶ Start kontroll</button>
 </header>
 
 <div id="statusBar">Laster...</div>
@@ -249,70 +182,47 @@
 <div id="modelBar">
   <label>Øyehøyde (m):</label>
   <input type="number" id="eyeHeight" value="1.1" step="0.1">
-  <label style="margin-left: 20px;">Objekthøyde (m):</label>
+  <label style="margin-left: 15px;">Objekthøyde (m):</label>
   <input type="number" id="objHeight" value="0.5" step="0.1">
 </div>
 
 <main id="mainContent">
-  <div class="cards anim" id="resultCards" style="display:none;">
-    <div class="card" id="cardStatus">
-      <div class="label">Siktstatus</div>
-      <div class="value" id="valStatus">-</div>
-      <div class="sub" id="subStatus">Venter på data</div>
+  <div class="panel">
+    <h3>Hvordan bruke verktøyet:</h3>
+    <div class="instructions">
+      <ol>
+        <li>Bruk Trimbles innebygde måleverktøy: <b>Mål &gt; Punkt</b> (Single Point).</li>
+        <li>Sett ett punkt der bilen/observatøren er.</li>
+        <li>Sett ett punkt på objektet/skiltet.</li>
+        <li>Trykk på knappen under!</li>
+      </ol>
     </div>
-    <div class="card blue">
-      <div class="label">Total avstand (A -> B)</div>
-      <div class="value" id="valDist">-</div>
-      <div class="sub">meter teoretisk sikt</div>
-    </div>
-    <div class="card" id="cardHit">
-      <div class="label">Første hindring ved</div>
-      <div class="value" id="valHit">-</div>
-      <div class="sub">meter fra observatør</div>
-    </div>
+    <button class="btn btn-primary" id="btnStart" disabled style="margin-top: 15px;">▶ Generer 3D Siktlinje</button>
+    <button class="btn btn-danger" id="btnClear" disabled>🗑 Fjern alle linjer</button>
   </div>
 
-  <div class="panel anim" style="animation-delay:.1s">
-    <div class="panel-header">
-      <h3>Historikk (siste sjekk øverst)</h3>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Status</th>
-            <th>Total lengde</th>
-            <th>Fri sikt lengde</th>
-            <th>Øyehøyde</th>
-            <th>Obj.høyde</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody">
-          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Ingen siktkontroller utført i denne økten.</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <div class="card" id="resultCard" style="display:none;">
+    <div class="label" style="font-size: 11px; text-transform: uppercase; color: var(--muted);">Avstand langs linje</div>
+    <div class="value" id="valDist">-</div>
+    <div class="sub">meter (inkl. høyde)</div>
   </div>
 </main>
 
 <script>
 let API = null;
-let workspace = null;
-let checksDone = 0;
 
 const $ = id => document.getElementById(id);
 const btnStart = $('btnStart');
+const btnClear = $('btnClear');
 const statusBar = $('statusBar');
 const modelBadge = $('modelBadge');
-const resultCards = $('resultCards');
-const tableBody = $('tableBody');
 
 function setStatus(msg, cls='') {
   statusBar.textContent = msg;
   statusBar.className = cls;
 }
 
-// 1. Koble til Trimble Connect (Nøyaktig som i deres mal)
+// 1. Koble til Trimble Connect
 async function connect() {
   try {
     if (!window.TrimbleConnectWorkspace?.connect) {
@@ -320,154 +230,100 @@ async function connect() {
     }
 
     setStatus('⏳ Kobler til Trimble Connect…');
-
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Tilkobling mot Trimble Connect tok for lang tid.')), 15000)
-    );
-
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Tilkobling tok for lang tid.')), 15000));
+    
     API = await Promise.race([
       window.TrimbleConnectWorkspace.connect(window.parent, () => {}),
       timeout
     ]);
 
-    // Håndter forskjeller i API-versjoner for sikkerhets skyld
-    workspace = API.ui ? API.ui.workspace : API.viewer;
-
     btnStart.disabled = false;
-    setStatus('✅ Tilkoblet Trimble Connect. Klar til å utføre siktkontroll.', 'ok');
+    btnClear.disabled = false;
+    setStatus('✅ Tilkoblet! Sett ut to punktmålinger og trykk "Generer".', 'ok');
     modelBadge.textContent = 'Tilkoblet';
   } catch (e) {
     setStatus('❌ ' + (e.message || e), 'error');
     modelBadge.textContent = 'Feil';
-    console.error(e);
   }
 }
 
-// 2. Utfør siktkontroll
+// 2. Les av punkter og tegn siktlinje
 btnStart.addEventListener('click', async () => {
-  btnStart.disabled = true;
-  resultCards.style.display = 'grid';
-
   try {
-    // Steg 1: Plukk startpunkt
-    setStatus('📍 Klikk i 3D-modellen for å sette STARTPUNKT (Observatør)...', 'warn');
-    const pickA = await workspace.pickPosition();
-    if (!pickA) {
-      setStatus('⚠️ Siktkontroll avbrutt (ingen startpunkt valgt).', '');
-      btnStart.disabled = false;
+    setStatus('Henter punktmålinger fra modellen...', 'warn');
+    
+    // Henter ut alle enkle punktmålinger brukeren har satt ut
+    const points = await API.markup.getSinglePointMarkups();
+    
+    if (!points || points.length < 2) {
+      setStatus('⚠️ Siktlinje avbrutt: Du må sette ut minst 2 punktmålinger først!', 'error');
       return;
     }
 
-    // Steg 2: Plukk sluttpunkt
-    setStatus('📍 Klikk i 3D-modellen for å sette SLUTTPUNKT (Mål/Skilt)...', 'warn');
-    const pickB = await workspace.pickPosition();
-    if (!pickB) {
-      setStatus('⚠️ Siktkontroll avbrutt (ingen sluttpunkt valgt).', '');
-      btnStart.disabled = false;
-      return;
-    }
+    // Vi tar de to SIFSTE punktene brukeren satte ut
+    const point1 = points[points.length - 2];
+    const point2 = points[points.length - 1];
 
-    setStatus('⏳ Beregner siktlinje og ser etter hindringer...', 'warn');
+    const p1 = point1.start;
+    const p2 = point2.start;
 
-    // Hent inputverdier
     const eyeOffset = parseFloat($('eyeHeight').value) || 0;
     const objOffset = parseFloat($('objHeight').value) || 0;
 
-    // Juster høyder
-    const start = { x: pickA.x, y: pickA.y, z: pickA.z + eyeOffset };
-    const end = { x: pickB.x, y: pickB.y, z: pickB.z + objOffset };
+    // Trimble-koordinater er i millimeter. Konverterer offset til mm.
+    const startPos = {
+      positionX: p1.positionX,
+      positionY: p1.positionY,
+      positionZ: p1.positionZ + (eyeOffset * 1000)
+    };
 
-    // Beregn vektor og avstand
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const dz = end.z - start.z;
-    const totalDist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-    const direction = { x: dx/totalDist, y: dy/totalDist, z: dz/totalDist };
+    const endPos = {
+      positionX: p2.positionX,
+      positionY: p2.positionY,
+      positionZ: p2.positionZ + (objOffset * 1000)
+    };
 
-    // Kjør kollisjonssjekk
-    const hit = await workspace.raycast({ origin: start, direction: direction, maxDistance: totalDist });
-    
-    // Trekk fra en liten margin (10cm) for å unngå falske treff helt inntil målepunktet
-    const isBlocked = hit && hit.distance < (totalDist - 0.1);
-
-    // Visualisering i 3D
-    await workspace.addGraphicPrimitives([{
-      type: 'line',
-      start: start,
-      end: isBlocked ? hit.position : end,
-      color: isBlocked ? {r:255,g:0,b:0,a:1} : {r:0,g:255,b:0,a:1},
-      width: 5
+    // Tegner selve siktlinjen (grønn strek)
+    await API.markup.addLineMarkups([{
+      start: startPos,
+      end: endPos,
+      color: { r: 0, g: 255, b: 0, a: 255 } // Solid grønn farge
     }]);
 
-    // Oppdater UI (Kort)
-    updateCards(totalDist, hit, isBlocked);
-    
-    // Oppdater UI (Logg-tabell)
-    addToLog(totalDist, hit, isBlocked, eyeOffset, objOffset);
+    // Rydder opp - sletter de to punktene som ble brukt som basis
+    const idsToRemove = [point1.id, point2.id].filter(id => id !== undefined);
+    if (idsToRemove.length > 0) {
+      await API.markup.removeMarkups(idsToRemove);
+    }
 
-    // Ferdig
-    setStatus(isBlocked ? '❌ Siktlinjen er blokkert!' : '✅ Fri sikt langs linjen!', isBlocked ? 'error' : 'ok');
+    // Beregner avstand for moro skyld (i meter)
+    const dx = (endPos.positionX - startPos.positionX) / 1000;
+    const dy = (endPos.positionY - startPos.positionY) / 1000;
+    const dz = (endPos.positionZ - startPos.positionZ) / 1000;
+    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+    $('resultCard').style.display = 'block';
+    $('valDist').innerText = dist.toFixed(2);
+
+    setStatus('✅ Siktlinje generert! Kontroller visuelt mot modellen.', 'ok');
 
   } catch (err) {
-    setStatus('❌ Feil under beregning: ' + err.message, 'error');
+    setStatus('❌ Feil under generering: ' + err.message, 'error');
     console.error(err);
   }
-
-  btnStart.disabled = false;
 });
 
-// Hjelpefunksjon for å oppdatere topp-kortene
-function updateCards(totalDist, hit, isBlocked) {
-  const cardStatus = $('cardStatus');
-  const cardHit = $('cardHit');
-
-  $('valDist').innerText = totalDist.toFixed(2);
-
-  if (isBlocked) {
-    cardStatus.className = 'card red anim';
-    $('valStatus').innerText = 'HINDRET';
-    $('subStatus').innerText = 'Kollisjon oppdaget';
-
-    cardHit.className = 'card red anim';
-    $('valHit').innerText = hit.distance.toFixed(2);
-  } else {
-    cardStatus.className = 'card green anim';
-    $('valStatus').innerText = 'OK';
-    $('subStatus').innerText = 'Fri sikt';
-
-    cardHit.className = 'card green anim';
-    $('valHit').innerText = 'Ingen';
+// Fjerner alle linjer (hvis man har testet flere ganger og det blir rotete)
+btnClear.addEventListener('click', async () => {
+  try {
+    await API.markup.removeMarkups();
+    $('resultCard').style.display = 'none';
+    setStatus('✅ Alle målinger og siktlinjer er slettet.', 'ok');
+  } catch (e) {
+    setStatus('❌ Feil ved sletting: ' + e.message, 'error');
   }
-}
+});
 
-// Hjelpefunksjon for å legge til rad i loggen
-function addToLog(totalDist, hit, isBlocked, eye, obj) {
-  if (checksDone === 0) {
-    tableBody.innerHTML = ''; // Fjern "ingen sjekker utført"-meldingen
-  }
-  checksDone++;
-
-  const statusPill = isBlocked 
-    ? `<span class="status-pill miss">HINDRET</span>` 
-    : `<span class="status-pill ok">FRI SIKT</span>`;
-  
-  const freeSightDist = isBlocked ? hit.distance.toFixed(2) + ' m' : totalDist.toFixed(2) + ' m';
-
-  const newRow = `
-    <tr>
-      <td>${statusPill}</td>
-      <td>${totalDist.toFixed(2)} m</td>
-      <td>${freeSightDist}</td>
-      <td>+${eye} m</td>
-      <td>+${obj} m</td>
-    </tr>
-  `;
-
-  // Legg til øverst i tabellen
-  tableBody.insertAdjacentHTML('afterbegin', newRow);
-}
-
-// Start oppkobling med en gang
 connect();
 </script>
 </body>
