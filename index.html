@@ -2,80 +2,102 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <script src="https://cdn.jsdelivr.net/npm/@trimble-oss/trimble-connect-workspace-api@2.0.0/dist/trimble.connect.workspace.api.js"></script>
+    <title>Siktkontroll Lokal</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .box { border: 1px solid #ccc; padding: 10px; border-radius: 5px; background: #fafafa; }
-        button { width: 100%; padding: 15px; background: #0078d4; color: white; border: none; cursor: pointer; font-weight: bold; }
+        body { font-family: sans-serif; padding: 15px; background: white; }
+        .card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        input { width: 60px; padding: 5px; margin-left: 10px; }
+        button { width: 100%; padding: 12px; margin-top: 15px; background: #0078d4; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
         button:disabled { background: #ccc; }
-        #log { font-size: 10px; color: #666; margin-top: 10px; }
+        #log { font-size: 11px; color: #666; margin-top: 10px; border-top: 1px solid #eee; padding-top: 5px; }
+        .status-ok { color: green; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h3>Siktkontroll v3</h3>
-        <label>Øyehøyde: <input type="number" id="h1" value="1.1" step="0.1"></label><br><br>
-        <label>Objekthøyde: <input type="number" id="h2" value="0.5" step="0.1"></label><br><br>
-        <button id="btn" disabled>Kobler til...</button>
-        <div id="log">Venter på SDK...</div>
+    <div class="card">
+        <h3>Siktkontroll v4</h3>
+        <div style="margin-bottom:10px">
+            <label>Øyehøyde (m):</label>
+            <input type="number" id="h1" value="1.1" step="0.1">
+        </div>
+        <div>
+            <label>Objekthøyde (m):</label>
+            <input type="number" id="h2" value="0.5" step="0.1">
+        </div>
+        <button id="btn" disabled>Kobler til Trimble...</button>
+        <div id="log">Initialiserer...</div>
     </div>
 
+    <!-- Her baker vi inn en "bootstrapper" for Trimble Connect -->
     <script>
-        let conn = null;
-        const log = (msg) => document.getElementById('log').innerText = msg;
+        // Dette er en minimal wrapper for å laste SDK-et manuelt hvis CDN feiler
+        (function() {
+            var script = document.createElement('script');
+            script.src = "https://connect-extensions.trimble.com/js/2.0.0/trimble.connect.workspace.api.js";
+            script.onload = function() { console.log("SDK lastet fra Trimble"); };
+            document.head.appendChild(script);
+        })();
 
-        async function init() {
-            if (typeof TrimbleConnectWorkspace === 'undefined') {
-                log("Feil: SDK ikke funnet i vinduet.");
-                setTimeout(init, 1000);
-                return;
-            }
-            try {
-                conn = await TrimbleConnectWorkspace.connect();
-                log("Tilkoblet Trimble Connect!");
-                document.getElementById('btn').disabled = false;
-                document.getElementById('btn').innerText = "Start Kontroll";
-            } catch (e) {
-                log("Kobling feilet: " + e.message);
+        let conn = null;
+        const log = (msg) => document.getElementById('log').innerHTML = msg;
+
+        async function checkConnection() {
+            if (typeof TrimbleConnectWorkspace !== 'undefined') {
+                try {
+                    conn = await TrimbleConnectWorkspace.connect();
+                    log("<span class='status-ok'>Tilkoblet Trimble Connect!</span>");
+                    document.getElementById('btn').disabled = false;
+                    document.getElementById('btn').innerText = "Klikk for å starte kontroll";
+                } catch (e) {
+                    log("Tilkobling feilet. Prøver igjen...");
+                    setTimeout(checkConnection, 1000);
+                }
+            } else {
+                log("Venter på SDK... (Sjekk adblocker hvis dette tar tid)");
+                setTimeout(checkConnection, 1000);
             }
         }
 
         document.getElementById('btn').onclick = async () => {
-            const ws = conn.ui.workspace;
-            log("Klikk i 3D-modellen for startpunkt...");
-            const p1 = await ws.pickPosition();
-            if(!p1) return;
-            
-            log("Klikk for sluttpunkt...");
-            const p2 = await ws.pickPosition();
-            if(!p2) return;
+            try {
+                const ws = conn.ui.workspace;
+                log("<b>Steg 1:</b> Klikk på veien (observatør)...");
+                const p1 = await ws.pickPosition();
+                if(!p1) return;
+                
+                log("<b>Steg 2:</b> Klikk på objektet (skiltet)...");
+                const p2 = await ws.pickPosition();
+                if(!p2) return;
 
-            const h1 = parseFloat(document.getElementById('h1').value);
-            const h2 = parseFloat(document.getElementById('h2').value);
+                const h1 = parseFloat(document.getElementById('h1').value);
+                const h2 = parseFloat(document.getElementById('h2').value);
 
-            const start = { x: p1.x, y: p1.y, z: p1.z + h1 };
-            const end = { x: p2.x, y: p2.y, z: p2.z + h2 };
+                const start = { x: p1.x, y: p1.y, z: p1.z + h1 };
+                const end = { x: p2.x, y: p2.y, z: p2.z + h2 };
 
-            // Enkel retningsvektor
-            const v = { x: end.x - start.x, y: end.y - start.y, z: end.z - start.z };
-            const d = Math.sqrt(v.x**2 + v.y**2 + v.z**2);
-            const dir = { x: v.x/d, y: v.y/d, z: v.z/d };
+                const v = { x: end.x - start.x, y: end.y - start.y, z: end.z - start.z };
+                const d = Math.sqrt(v.x**2 + v.y**2 + v.z**2);
+                const dir = { x: v.x/d, y: v.y/d, z: v.z/d };
 
-            const hit = await ws.raycast({ origin: start, direction: dir, maxDistance: d });
-            const blocked = hit && hit.distance < (d - 0.1);
+                log("Beregner sikt...");
+                const hit = await ws.raycast({ origin: start, direction: dir, maxDistance: d });
+                const blocked = hit && hit.distance < (d - 0.1);
 
-            await ws.addGraphicPrimitives([{
-                type: 'line',
-                start: start,
-                end: blocked ? hit.position : end,
-                color: blocked ? {r:255,g:0,b:0,a:1} : {r:0,g:255,b:0,a:1},
-                width: 5
-            }]);
-            
-            log(blocked ? "HINDRING FUNNET!" : "FRI SIKT!");
+                await ws.addGraphicPrimitives([{
+                    type: 'line',
+                    start: start,
+                    end: blocked ? hit.position : end,
+                    color: blocked ? {r:255,g:0,b:0,a:1} : {r:0,g:255,b:0,a:1},
+                    width: 5
+                }]);
+                
+                log(blocked ? "<b style='color:red'>SIKT HINDRET!</b>" : "<b style='color:green'>FRI SIKT!</b>");
+            } catch (err) {
+                log("Feil: " + err.message);
+            }
         };
 
-        init();
+        checkConnection();
     </script>
 </body>
 </html>
