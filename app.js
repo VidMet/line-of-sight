@@ -1,115 +1,78 @@
 let connection = null;
+let attempts = 0;
 
-/**
- * Initialiserer tilkoblingen til Trimble Connect
- */
-async function initializeExtension() {
-    const statusEl = document.getElementById('status');
-    const buttonEl = document.getElementById('runCheck');
+async function startApp() {
+    const btn = document.getElementById('runCheck');
+    const status = document.getElementById('status-bar');
 
+    // Sjekk om TrimbleConnectWorkspace eksisterer, hvis ikke vent 500ms og prøv igjen
     if (typeof TrimbleConnectWorkspace === 'undefined') {
-        statusEl.innerText = "Status: Feil - SDK ikke funnet!";
-        statusEl.style.color = "red";
+        attempts++;
+        if (attempts < 10) {
+            status.innerText = `Leter etter SDK (forsøk ${attempts})...`;
+            setTimeout(startApp, 500);
+        } else {
+            status.innerText = "Feil: Kunne ikke laste Trimble SDK. Sjekk internett.";
+            status.style.color = "red";
+        }
         return;
     }
 
     try {
-        // Oppretter kontakt med Trimble Connect
+        status.innerText = "Kobler til Trimble Connect...";
         connection = await TrimbleConnectWorkspace.connect();
-        
-        statusEl.innerText = "Status: Koblet til Trimble Connect";
-        buttonEl.disabled = false;
-        buttonEl.innerText = "Start ny kontroll";
-        console.log("Utvidelse er klar.");
-    } catch (error) {
-        statusEl.innerText = "Status: Tilkobling feilet";
-        console.error("Initialisering feilet:", error);
+        status.innerText = "Klar til bruk!";
+        btn.disabled = false;
+        btn.innerText = "Start ny kontroll";
+    } catch (e) {
+        status.innerText = "Tilkobling feilet: " + e.message;
     }
 }
 
-/**
- * Hovedfunksjon for siktkontroll
- */
-async function performSightCheck() {
+document.getElementById('runCheck').addEventListener('click', async () => {
     const workspace = connection.ui.workspace;
-    const resBox = document.getElementById('resultBox');
-    
-    resBox.style.display = "none";
-    
-    try {
-        // 1. Hent verdier fra UI
-        const eyeOffset = parseFloat(document.getElementById('eyeHeight').value) || 0;
-        const objOffset = parseFloat(document.getElementById('objHeight').value) || 0;
+    const eyeOffset = parseFloat(document.getElementById('eyeHeight').value) || 0;
+    const objOffset = parseFloat(document.getElementById('objHeight').value) || 0;
 
-        // 2. Plukk Startpunkt (Observatør)
-        // Trimble Connect setter automatisk vieweren i "pick mode"
+    try {
+        // Punkt A
         const pickA = await workspace.pickPosition();
         if (!pickA) return;
+        const start = { x: pickA.x, y: pickA.y, z: pickA.z + eyeOffset };
 
-        const start = { 
-            x: pickA.x, 
-            y: pickA.y, 
-            z: pickA.z + eyeOffset 
-        };
-
-        // 3. Plukk Sluttpunkt (Mål)
+        // Punkt B
         const pickB = await workspace.pickPosition();
         if (!pickB) return;
+        const end = { x: pickB.x, y: pickB.y, z: pickB.z + objOffset };
 
-        const end = { 
-            x: pickB.x, 
-            y: pickB.y, 
-            z: pickB.z + objOffset 
-        };
-
-        // 4. Beregn avstand og retning
+        // Raycast
         const dx = end.x - start.x;
         const dy = end.y - start.y;
         const dz = end.z - start.z;
-        const totalDist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-        const direction = { x: dx/totalDist, y: dy/totalDist, z: dz/totalDist };
+        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        const dir = { x: dx/dist, y: dy/dist, z: dz/dist };
 
-        // 5. Kjør kollisjonstest (Raycast)
-        const hit = await workspace.raycast({
-            origin: start,
-            direction: direction,
-            maxDistance: totalDist
-        });
+        const hit = await workspace.raycast({ origin: start, direction: dir, maxDistance: dist });
+        const isBlocked = hit && hit.distance < (dist - 0.1);
 
-        // Sjekk om vi traff noe før vi nådde målet (med 10cm margin)
-        const isBlocked = hit && hit.distance < (totalDist - 0.1);
-        
-        // 6. Visualisering
-        const lineColor = isBlocked ? { r: 255, g: 0, b: 0, a: 1 } : { r: 0, g: 255, b: 0, a: 1 };
-        
-        await workspace.addGraphicPrimitives([
-            {
-                type: 'line',
-                start: start,
-                end: isBlocked ? hit.position : end,
-                color: lineColor,
-                width: 4
-            }
-        ]);
+        // Tegn
+        await workspace.addGraphicPrimitives([{
+            type: 'line',
+            start: start,
+            end: isBlocked ? hit.position : end,
+            color: isBlocked ? { r: 255, g: 0, b: 0, a: 1 } : { r: 0, g: 255, b: 0, a: 1 },
+            width: 5
+        }]);
 
-        // 7. Vis resultat i panelet
-        resBox.style.display = "block";
-        if (isBlocked) {
-            resBox.className = "result fail";
-            resBox.innerText = `SIKT HINDRET!\nTreffpunkt etter ${hit.distance.toFixed(2)}m`;
-        } else {
-            resBox.className = "result ok";
-            resBox.innerText = `FRI SIKT!\nLengde: ${totalDist.toFixed(2)}m`;
-        }
+        const res = document.getElementById('resultBox');
+        res.style.display = "block";
+        res.className = isBlocked ? "result fail" : "result ok";
+        res.innerText = isBlocked ? "HINDRET SIKT" : "FRI SIKT";
 
     } catch (err) {
-        console.error("Feil under utførelse:", err);
-        alert("Det oppstod en feil under plukking av punkt. Sjekk konsollen.");
+        console.error(err);
     }
-}
+});
 
-// Start initialisering
-initializeExtension();
-
-// Lytt etter klikk på knappen
-document.getElementById('runCheck').addEventListener('click', performSightCheck);
+// Start loopen
+startApp();
