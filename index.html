@@ -2,7 +2,7 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8"/>
-  <title>E6SO RDS Validator V.63</title>
+  <title>Siktkontroll V8</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <style>
@@ -23,7 +23,6 @@
       --red-dim:   #3a1212;
       --blue:      #58a6ff;
       --blue-dim:  #0d2044;
-      --accent:    #58a6ff;
       --mono:      'JetBrains Mono', monospace;
       --sans:      'Syne', sans-serif;
     }
@@ -89,11 +88,7 @@
     .btn:not(:disabled):hover { opacity: .85; }
     .btn:not(:disabled):active { transform: scale(.97); }
     .btn-primary { background: var(--blue); color: #000; }
-    .btn-ghost   { background: var(--surface2); color: var(--ink); border: 1px solid var(--border); }
     .btn-danger  { background: #21262d; color: var(--red); border: 1px solid #3a1c1c; }
-    .btn-colorize { background: #1a3a22; color: var(--green); border: 1px solid #2a5a32; }
-    .btn-unreset  { background: #1f2937; color: var(--muted); border: 1px solid var(--border); }
-    .btn-export   { background: #0d2044; color: var(--blue); border: 1px solid #1a3a6c; }
 
     #statusBar {
       font-family: var(--mono);
@@ -106,6 +101,7 @@
     }
     #statusBar.ok    { background: var(--green-dim); color: var(--green); border-color: #1a3a22; }
     #statusBar.error { background: var(--red-dim);   color: var(--red);   border-color: #3a1212; }
+    #statusBar.warn  { background: var(--yellow-dim); color: var(--yellow); border-color: #3a2d05; }
 
     #modelBar {
       background: var(--surface);
@@ -122,7 +118,7 @@
       font-family: var(--mono);
       white-space: nowrap;
     }
-    select {
+    input[type="number"] {
       font-family: var(--mono);
       font-size: 12px;
       background: var(--surface2);
@@ -130,10 +126,8 @@
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 6px 10px;
-      flex: 1;
-      min-width: 0;
+      width: 80px;
     }
-    select:disabled { opacity: .4; }
 
     main {
       flex: 1;
@@ -146,7 +140,7 @@
 
     .cards {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 10px;
     }
     .card {
@@ -176,8 +170,6 @@
     }
     .card.green  { border-color: #1e4028; }
     .card.green .value { color: var(--green); }
-    .card.yellow { border-color: #3a2d05; }
-    .card.yellow .value { color: var(--yellow); }
     .card.red    { border-color: #3a1212; }
     .card.red .value { color: var(--red); }
     .card.blue   { border-color: #0d2044; }
@@ -201,58 +193,9 @@
       font-weight: 700;
       flex: 1;
     }
-    .panel-header .hint {
-      font-size: 10px;
-      color: var(--muted);
-      font-family: var(--mono);
-    }
-
-    #fieldChart { padding: 14px; display: flex; flex-direction: column; gap: 7px; }
-
-    .field-row { display: flex; align-items: center; gap: 10px; }
-    .field-name {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--muted);
-      width: 180px;
-      flex-shrink: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .bar-track {
-      flex: 1;
-      height: 16px;
-      background: var(--surface2);
-      border-radius: 4px;
-      overflow: hidden;
-      display: flex;
-    }
-    .bar-fill-ok   { background: var(--green); height: 100%; transition: width .5s cubic-bezier(.4,0,.2,1); }
-    .bar-fill-miss { background: var(--red);   height: 100%; transition: width .5s cubic-bezier(.4,0,.2,1); }
-    .bar-pct {
-      font-family: var(--mono);
-      font-size: 10px;
-      width: 48px;
-      text-align: right;
-      flex-shrink: 0;
-      color: var(--ink);
-    }
-    .bar-count {
-      font-family: var(--mono);
-      font-size: 10px;
-      width: 60px;
-      text-align: right;
-      flex-shrink: 0;
-      color: var(--muted);
-    }
 
     .table-wrap { overflow: auto; max-height: 340px; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11px;
-    }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
     thead th {
       background: var(--surface2);
       color: var(--muted);
@@ -264,1329 +207,113 @@
       text-align: left;
       position: sticky;
       top: 0;
-      z-index: 1;
-      white-space: nowrap;
     }
     tbody tr { border-bottom: 1px solid #1c2128; }
-    tbody tr:hover td { background: #1c2128; }
     tbody td {
-      padding: 6px 10px;
-      vertical-align: middle;
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--ink);
-    }
-    .obj-name { color: var(--blue); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .guid     { color: var(--muted); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
-    .guid:hover { color: var(--ink); }
-
-    .issue-cell {
-      min-width: 240px;
-      max-width: 360px;
-      white-space: normal;
-      line-height: 1.35;
-    }
-    .issue-pill {
-      display: inline-block;
-      font-family: var(--mono);
-      font-size: 10px;
-      padding: 3px 7px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--surface2);
-      color: var(--muted);
-    }
-    .issue-pill.ok {
-      background: var(--green-dim);
-      color: var(--green);
-      border-color: #1e4028;
-    }
-    .issue-pill.warn {
-      background: var(--yellow-dim);
-      color: var(--yellow);
-      border-color: #3a2d05;
-    }
-    .issue-pill.miss {
-      background: var(--red-dim);
-      color: var(--red);
-      border-color: #3a1212;
-    }
-
-    .fc {
-      width: 22px;
-      height: 22px;
-      border-radius: 4px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 9px;
-      font-weight: 700;
-    }
-    .fc.ok   { background: var(--green-dim); color: var(--green); }
-    .fc.miss { background: var(--red-dim);   color: var(--red); }
-    .fc.na   { background: #2a2f36; color: #9aa4af; }
-    .fc.warn { background: var(--yellow-dim); color: var(--yellow); }
-
-    .field-value {
-      display: inline-block;
-      max-width: 150px;
-      min-width: 72px;
-      padding: 3px 7px;
-      border-radius: 5px;
-      font-family: var(--mono);
-      font-size: 10px;
-      line-height: 1.2;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      border: 1px solid transparent;
-    }
-    .field-value.ok { background: var(--green-dim); color: var(--green); border-color: #1e4028; }
-    .field-value.warn { background: var(--yellow-dim); color: var(--yellow); border-color: #3a2d05; }
-    .field-value.miss { background: var(--red-dim); color: var(--red); border-color: #3a1212; }
-    .field-value.na { background: #2a2f36; color: #9aa4af; border-color: #30363d; }
-    .field-col-head {
-      min-width: 110px;
-      max-width: 150px;
-      white-space: normal;
-      line-height: 1.15;
-    }
-
-    #disciplineSelect { max-width: 220px; flex: 0 0 220px; }
-
-    .score {
-      display: inline-block;
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 20px;
-    }
-    .score.s100 { background: var(--green-dim); color: var(--green); }
-    .score.s75  { background: #1a2a10; color: #7ee787; }
-    .score.s50  { background: var(--yellow-dim); color: var(--yellow); }
-    .score.s25  { background: #3a2005; color: #d08030; }
-    .score.s0   { background: var(--red-dim); color: var(--red); }
-
-    .tabs { display: flex; gap: 6px; }
-    .tab {
-      font-family: var(--mono);
-      font-size: 10px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all .15s;
-    }
-    .tab.active, .tab:hover {
-      background: var(--surface2);
-      color: var(--ink);
-      border-color: var(--blue);
-    }
-
-    #donutWrap { display: flex; align-items: center; gap: 20px; padding: 14px; }
-    #donutSvg  { flex-shrink: 0; }
-    .donut-legend { display: flex; flex-direction: column; gap: 6px; }
-    .legend-item  { display: flex; align-items: center; gap: 8px; font-size: 11px; }
-    .legend-dot   { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-    .legend-text  { color: var(--muted); font-family: var(--mono); font-size: 10px; }
-    .legend-val   {
-      font-weight: 700;
-      color: var(--ink);
-      margin-left: auto;
-      font-family: var(--mono);
-      font-size: 10px;
-      min-width: 28px;
-      text-align: right;
-    }
-
-    #searchInput {
+      padding: 8px 10px;
       font-family: var(--mono);
       font-size: 11px;
-      background: var(--surface2);
       color: var(--ink);
-      border: 1px solid var(--border);
+    }
+    .status-pill {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 3px 7px;
       border-radius: 6px;
-      padding: 5px 10px;
-      width: 180px;
+      border: 1px solid var(--border);
     }
-    #searchInput::placeholder { color: var(--muted); }
-
-    .empty {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-    .empty .icon { font-size: 36px; margin-bottom: 10px; }
-
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .status-pill.ok { background: var(--green-dim); color: var(--green); border-color: #1e4028; }
+    .status-pill.miss { background: var(--red-dim); color: var(--red); border-color: #3a1212; }
 
     @keyframes fadeUp {
       from { opacity:0; transform:translateY(6px); }
       to   { opacity:1; transform:none; }
     }
     .anim { animation: fadeUp .3s ease both; }
-
-    .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-
-    @media(max-width: 640px) {
-      .grid-2col { grid-template-columns: 1fr; }
-      .cards { grid-template-columns: repeat(2,1fr); }
-    }
   </style>
 </head>
 <body>
 
 <header>
   <div class="header-title">
-    <h1>E6SO RDS Validator V.63</h1>
-    <p>PropertySet: 2_RDS · 16 felter · VEI V.27 · TUNNEL V.28 · VVA/VAA V.23 · BYGGTEK V.25 · UTS V.58 · SKO V.51 · JBT V.52 · MERKING V.53 · LARK V.61 · HHHnnnnn: 3 bokstaver + 1–5 siffer</p>
+    <h1>Siktkontroll V8</h1>
+    <p>Utfører siktkontroll med raycasting langs valgt linje. Grønn = fri sikt, Rød = hindret sikt.</p>
   </div>
   <span class="badge" id="modelBadge">Ikke tilkoblet</span>
-  <button class="btn btn-ghost" id="btnLoad" disabled>Hent modeller</button>
-  <button class="btn btn-primary" id="btnValidate" disabled>▶ Valider</button>
-  <button class="btn btn-colorize" id="btnColorize" disabled>🎨 Fargelegg</button>
-  <button class="btn btn-unreset" id="btnUncolor" disabled>⬜ Fjern farger</button>
-  <button class="btn btn-export" id="btnExport" disabled>⬇ Eksporter CSV</button>
-  <button class="btn btn-danger" id="btnReset" disabled>↺ Nullstill</button>
+  <button class="btn btn-primary" id="btnStart" disabled>▶ Start kontroll</button>
 </header>
 
-<div id="statusBar">Kobler til Trimble Connect…</div>
+<div id="statusBar">Laster...</div>
 
 <div id="modelBar">
-  <label>Modell:</label>
-  <select id="modelSelect" disabled><option value="">– velg modell –</option></select>
-  <label>Fagregel:</label>
-  <select id="disciplineSelect"></select>
+  <label>Øyehøyde (m):</label>
+  <input type="number" id="eyeHeight" value="1.1" step="0.1">
+  <label style="margin-left: 20px;">Objekthøyde (m):</label>
+  <input type="number" id="objHeight" value="0.5" step="0.1">
 </div>
 
 <main id="mainContent">
-  <div class="empty anim">
-    <div class="icon">🔍</div>
-    <div>
-      Velg en modell og trykk <strong>Valider</strong> for å starte.<br>
-      <span style="font-size:11px;color:var(--muted)">
-        Kun objekter med PropertySet <code>0_Element</code> valideres. Elementer der både <code>Objektklasse</code> og <code>Objekttype</code> er satt til <code>NotApplicable</code> hoppes over.
-      </span>
+  <div class="cards anim" id="resultCards" style="display:none;">
+    <div class="card" id="cardStatus">
+      <div class="label">Siktstatus</div>
+      <div class="value" id="valStatus">-</div>
+      <div class="sub" id="subStatus">Venter på data</div>
+    </div>
+    <div class="card blue">
+      <div class="label">Total avstand (A -> B)</div>
+      <div class="value" id="valDist">-</div>
+      <div class="sub">meter teoretisk sikt</div>
+    </div>
+    <div class="card" id="cardHit">
+      <div class="label">Første hindring ved</div>
+      <div class="value" id="valHit">-</div>
+      <div class="sub">meter fra observatør</div>
+    </div>
+  </div>
+
+  <div class="panel anim" style="animation-delay:.1s">
+    <div class="panel-header">
+      <h3>Historikk (siste sjekk øverst)</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Total lengde</th>
+            <th>Fri sikt lengde</th>
+            <th>Øyehøyde</th>
+            <th>Obj.høyde</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Ingen siktkontroller utført i denne økten.</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </main>
 
 <script>
-const PSET = '2_RDS';
-
-const FIELDS = [
-  { key: '01', label: '01. RDS-tag' },
-  { key: '02', label: '02. AAAAAA' },
-  { key: '03', label: '03. Bnn' },
-  { key: '04', label: '04. Bnn navn' },
-  { key: '05', label: '05. Cnn' },
-  { key: '06', label: '06. Cnn navn' },
-  { key: '07', label: '07. Dnn' },
-  { key: '08', label: '08. Dnn navn' },
-  { key: '09', label: '09. EEnnn' },
-  { key: '10', label: '10. EEnnn navn' },
-  { key: '11', label: '11. FFFnnn' },
-  { key: '12', label: '12. FFFnnn navn' },
-  { key: '13', label: '13. GGGnnn' },
-  { key: '14', label: '14. GGGnnn navn' },
-  { key: '15', label: '15. HHHnnnnn' },
-  { key: '16', label: '16. HHHnnnnn navn' }
-];
-
-const IGNORE = new Set([
-  'IFCPROJECT','IFCSITE','IFCBUILDING','IFCBUILDINGSTOREY','IFCSPACE',
-  'IFCZONE','IFCBUILDINGUNIT','IFCSPATIALZONE',
-  'IFCGROUP','IFCSYSTEM','IFCBUILDINGELEMENTPROXYTYPE',
-  'IFCFLOWTERMINALTYPE','IFCFLOWSEGMENTTYPE','IFCDISTRIBUTIONELEMENTTYPE'
-]);
-
-const RX = {
-  anyText: /.+/,
-  tag: /^<[^>]+>-.+$/,
-  aaaaaa: /^<[^>]+>$/,
-  bcd: /^[A-Z]\d+$/,
-  ee: /^[A-Z]{2}\d+$/,
-  fff: /^[A-Z]{3}\d+$/,
-  ggg: /^[A-Z]{3}\d+$/,
-  hhh: /^[A-Z]{3}\d{1,5}$/
-};
-
-const SKILT_TUNNEL_RDS_REGEX = /^<E6SØ>-D1\.(?:A1|A2|B1|B2|C1|C2|C3|C4|D(?:[1-9]|10|11)|BA1|CA1|CB1)\.(?:M1\.ME2|BB1)\.(?:PFA102|UBF101|ULG105|ULG106|PHA10[1-2]|RUB10[1-2]|UQB10[1-3]|UQB10[6-7]|PHD(?:10[1-9]|1[1-9]\d|20[0-8]))\.(?:PFA10[1-3]|UBF10[1-3]|ULG10[1-9]|PHA10[1-8]|RUB101|UQB10[1-3]|UQB10[6-7]|PHD(?:10[1-9]|1[1-9]\d|20[0-8]))\.(?:PFA(?:[1-9]|1\d|2[01])|PHA(?:[1-9]|[1-8]\d|9[0-6])|PHD(?:[1-9]|[1-9]\d|1\d{2}|20[0-8])|UBF(?:1|3|4|5|7|8|9)|ULG(?:[1-4]|10[1-9])|UQB(?:[1-9]|1[0-9]|2[0-6]))$/;
-const SKO_TUNNEL_FFF_REGEX = /^(PFA102|UBF101|ULG105|PHA101|PHA102|RUB101|RUB102|ULG106|PHD102|PHD13|PHD103|PHD104|UQB101|UQB102|PHD30|PHD101|PHA30|PHD105|UQB103)$/;
-const SKO_TUNNEL_FFF_NAME_REGEX = /^(Signalhode|Skiltportal|Skiltportalfundament|Skilt|VariabeltSkilt|Ledebom|Stengebom|Veibomfundament|Skiltfundament|Skiltmast|Skiltplate|Skiltholder|Festbolt|Mutter|Sanntidsinfo Leskur|Skilt fast|Skiltoppheng|Skjøtehylse|Festebolt)$/;
-
-const KNS_FFF_REGEX = /^(?:RQB101|UTA105|UMA102|ULK101|ULH101|ULK102|RQB102|UPC101|ULG101|ULH102|ULK103|UQA101|QCA101|ULF101|UAH101|ULM101|RQB103|FSG101|UTA102|FQD101|UTA103|UMA101|XNF101)$/;
-const KNS_FFF_NAME_REGEX = /^(?:Asfaltmembran|Avrettingslag|Bergsikring|Betongavretting|Brem|Dybler|Fiberduk|Fuge i betong|Fundament|Hvelv|Hylse|Innstøpt gjengestag|Jording|Kjemisk anker|Klemlist|Knevegg|Membran|Membranbeskyttelse|Oppfylling|Rekkverk|Tilbakefylling|Armering|Skjøtekobling)$/;
-const KNS_GGG_REGEX = /^(?:FQD101|FSG101|QCA101|RQB101|RQB102|RQB103|RQB104|UAH101|ULF101|ULG101|ULH101|ULK101|ULM101|UMA101|UPC101|UQA101|UTA101|UMA102|UMA103|UMA104|UMA105|UMA106|UMA107|UMA108|UMA109|UMA110|UMA111|UMA112|UMA113|UMA114|UMA115|UMA116|XNF104|XNF115)$/;
-const KNS_GGG_NAME_REGEX = /^(?:Asfaltmembran|Avrettingslag|Bergsikring|Betongavretting|Brem|Bruksklasse 4|Dybler|Fraksjon 0\/8|Fraksjon 22\/120|Fuge i betong|Fundament|Hvelv|Hylse|Innstøpt gjengestag|Jording|Kjemisk anker|Klemlist|Knevegg|L2|Oppfylling|Overgangsfolie|PVC|Byggeetappe .+)$/;
-
-const KNS_BRU_RDS_REGEX = /^<E6SØ>-(?:(?:C4\.(?:(?:P1\.CL1)|(?:K1\.(?:PC1|JK1))|(?:BA1|BC1|BD1|CG1)))|(?:D1\.(?:C3|C4)\.(?:(?:P1\.CL1)|(?:K1\.(?:PC1|JK1))|(?:BA1|BC1|BD1|CG1))))\.(?:RQB101|UTA105|UMA102|ULK101|ULH101|ULK102|RQB102|UPC101|ULG101|ULH102|ULK103|UQA101|QCA101|ULF101|UAH101|ULM101|RQB103|FSG101|UTA102|FQD101|UTA103|UMA101|XNF101)\.(?:FQD101|FSG101|QCA101|RQB101|RQB102|RQB103|RQB104|UAH101|ULF101|ULG101|ULH101|ULK101|ULM101|UMA101|UPC101|UQA101|UTA101|UMA102|UMA103|UMA104|UMA105|UMA106|UMA107|UMA108|UMA109|UMA110|UMA111|UMA112|UMA113|UMA114|UMA115|UMA116|XNF104|XNF115)\.[A-Z]{3}\d{1,5}$/;
-
-const KNS_NO_DNN_EE = new Set(['BA1','BC1','BD1','CG1']);
-const KNS_REQUIRED_DNN_BY_EE = {
-  PC1: { dnn: 'K1', dnnName: 'Elkraftsystem' },
-  JK1: { dnn: 'K1', dnnName: 'Elkraftsystem' },
-  CL1: { dnn: 'P1', dnnName: 'Sikkerhetssystem' }
-};
-
-const VEI_BNN_REGEX = /^(?:A1|A2|A3|B1|D1)$/;
-const VEI_BNN_NAME_REGEX = /^(?:Dagsone, Storhove - Ødegården|Dagsone, Ødegården - Ensby|Dagsone, Ensby - Midtskog|Skjæring\/mur|Tunnel, Fåbergtunnelen)$/;
-const VEI_CNN_REGEX = /^(?:A1|A2|A3|A4|A5)$/;
-const VEI_CNN_NAME_REGEX = /^(?:Vei, E6 Hovedvei|Vei, Fylkesvei|Vei, Kommunal vei|Vei, Øvrig vei|Udefinerte øvrige tiltak|Vei i tunnel, Nordgående|Vei i tunnel, Sørgående)$/;
-const VEI_DNN_REGEX = /^G1$/;
-const VEI_DNN_NAME_REGEX = /^Drenering- og avløpssystem$/;
-const VEI_EE_REGEX = /^(?:BA1|BA2|CA1|CB1|CK1|JD1)$/;
-const VEI_EE_NAME_REGEX = /^(?:Fjellskjæring|Grunnarbeid, terreng|Massedeponi|Overvannsystem|Veioverbygning|Veiunderbygning)$/;
-const VEI_FFF_REGEX = /^(?:FSD102|NCA101|NCA103|NCG101|NDA103|RQA101|RQB102|ULA101|UMC101|UTA101|UTA102|UTA103|UTA104|UTA105|UTB101|WMB102)$/;
-const VEI_FFF_NAME_REGEX = /^(?:Bindlag|Bærelag|Deponi|Fiberduk|Forsterkningslag|Frostsikringslag|Fylling|Fyllingsskråning|Grøft|Kantstein|LavesteGravenivå|Planum|Skjæring|Slitelag|Terrengforming|Voll)$/;
-const VEI_GGG_REGEX = /^(?:FSD101|FSD102|NCA101|NCA102|NCA103|NCA104|NCA105|NCG101|NCG102|NDA101|RQA101|RQB101|ULA107|ULA108|ULA109|ULA110|ULA111|UMC101|UTA101|UTA102|UTA103|UTA105|UTB101|WMB101)$/;
-const VEI_GGG_NAME_REGEX = /^(?:Bindlag, Ab11|Bindlag, Agb11|Bærelag, Fk 0\/32|Deponi|Fiberduk|Forsterkningslag, Fk 22\/125|Frostsikringslag, Knust berg|Fyllingsskråning|GrøftÅpen|Kantstein|LavesteGravenivå|Nedre bærelag, Ag22|Nedre bærelag, Fk 0\/32|Oppfylling|PlanumBerg|PlanumFylling|PlanumJord|Revegetering|SkjæringBerg|SkjæringJord|Slitelag, Ab11|Slitelag, Agb11|Slitelag, Fk 0\/11|Slitelag, Ska16|Voll|Øvre bærelag, Ag16|Øvre bærelag, Ag22)$/;
-const VEI_HHH_NAME_REGEX = /^nr\.\d+$/;
-
-const TUNNEL_BNN_REGEX = /^D1$/;
-const TUNNEL_BNN_NAME_REGEX = /^Tunnel, Fåbergtunnelen$/;
-const TUNNEL_CNN_REGEX = /^(?:A1|A2|B1|B2|D1|D2|D3|D4|D5|D6|D7|D8|D9|D10|D11)$/;
-const TUNNEL_CNN_NAME_REGEX = /^(?:Vei i tunnel, Nordgående|Vei i tunnel, Sørgående|Teknisk bygg, Nord|Teknisk bygg, Sør|Tverrslag 1|Tverrslag 2|Tverrslag 3|Tverrslag 4|Tverrslag 5|Tverrslag 6|Tverrslag 7|Tverrslag 8|Tverrslag 9|Tverrslag 10|Tverrslag 11)$/;
-const TUNNEL_DNN_REGEX = /^$/;
-const TUNNEL_DNN_NAME_REGEX = /^$/;
-const TUNNEL_EE_REGEX = /^(?:BA1|CD1|CG1)$/;
-const TUNNEL_EE_NAME_REGEX = /^(?:Bankett|Grunnarbeid, terreng|Vann- og fuktforebyggende system)$/;
-const TUNNEL_FFF_REGEX = /^(?:NDA101|RQB101|UMH101|UNA101)$/;
-const TUNNEL_FFF_NAME_REGEX = /^(?:Bankett|Membran|Sprøytebetong|Tunnelløp)$/;
-const TUNNEL_GGG_REGEX = /^(?:NDA101|RQB103|RQB104|UMH101|UNA101)$/;
-const TUNNEL_GGG_NAME_REGEX = /^(?:Bankett type betong B45|Membran type PE-skum iht\. Håndbok N500|Membran type lys iht\. Håndbok N500|Sprøytebetong type B35|Teoretisk sprengningsprofil)$/;
-const TUNNEL_HHH_REGEX = /^(?:NDA1|NDA2|RQB1|UMH1|UNA1)$/;
-const TUNNEL_HHH_NAME_REGEX = /^(?:Posisjonsnummer 1|Posisjonsnummer 2)$/;
-
-const VAA_BNN_REGEX = /^(?:A1|A2|A3|A4|B1|C1|C2|C3|C4|C5|D1)$/;
-const VAA_BNN_NAME_REGEX = /^(?:Dagsone, Storhove - Ødegården|Dagsone, Ødegården - Ensby|Dagsone, Ensby - Midtskog|Dagsone, Midtskog - Øyer|Skjæring\/mur|Bru\/kulvert, K710|Bru\/kulvert, K711|Bru\/kulvert, K911|Bru\/kulvert, K921|Bru\/kulvert, K931|Tunnel, Fåbergtunnelen)$/;
-const VAA_CNN_REGEX = /^(?:A1|A2|A3|A4|A5|A6|A7|B1|B2|C1|C2|C3|C4|D1|D2|D3|D4|D5|D6|D7|D8|D9|D10|D11)$/;
-const VAA_CNN_NAME_REGEX = /^(?:Vei, E6 Hovedvei|Vei, Fylkesvei|Vei, Kommunal vei|Vei, Øvrig vei|Udefinerte øvrige tiltak|Gang og sykkelvei|Parkeringsplass|Bomstasjon|Teknisk bygg|Vei|Teknisk bygg tilhørende bru|Vei i tunnel, Nordgående|Vei i tunnel, Sørgående|Teknisk bygg, Nord|Teknisk bygg, Sør|Portal K721|Portal K725|Portal K731|Portal K735|Tverrslag 1|Tverrslag 2|Tverrslag 3|Tverrslag 4|Tverrslag 5|Tverrslag 6|Tverrslag 7|Tverrslag 8|Tverrslag 9|Tverrslag 10|Tverrslag 11)$/;
-const VAA_DNN_REGEX = /^(?:F1|G1|K1)$/;
-const VAA_DNN_NAME_REGEX = /^(?:Vannsystem|Drenering- og avløpssystem|Elkraftsystem)$/;
-const VAA_EE_REGEX = /^(?:PB1|JB1|JD1|JD2|JK1|BA1)$/;
-const VAA_EE_NAME_REGEX = /^(?:Brannslokkesystem|Vannfordelingssystem|Overvannsystem|Avløpssystem|Kabelføringssystem|Grunnarbeid, terreng)$/;
-const VAA_FFF_REGEX = /^(?:RQA102|UCA104|UCA105|UCA106|UCA107|UCA108|UCA109|UCA110|WMB101|WPA102|WPA103|WPA105|WPA107|WPA108|WPA109|WPA110|WPA111|XMA101)$/;
-const VAA_FFF_NAME_REGEX = /^(?:Bekkeinntak|Drensledning|GrøftÅpen|Hjelpesluk|Hydrant|Isolasjon|Nedføringsrenne|Overvannskum|Overvannsledning|Sandfang|Spillvannskum|Spillvannsledning|Stake-\/Spylekum|Trekkerør|Vannkum|Vannledning|Varerør|Vaskevannsledning)$/;
-const VAA_GGG_REGEX = /^(?:RQA101|RQA102|UCA101|UCA102|UCA103|UCA104|UCA105|UCA106|UCA107|UCA108|UCA110|UCA111|UCA112|UCA113|WMB101|WPA101|WPA102|WPA103|WPA104|WPA105|WPA106|WPA107|WPA108|WPA109|WPA111|WPA112|WPA113|WPA114|WPA115|WPA116|WPA117|WPA118|WPA119|WPA121|WPA122|WPA123|WPA124|XMA101)$/;
-const VAA_GGG_NAME_REGEX = /^(?:110_PVC|BI_1400_BTG|Bekkeinntak|Brannvannsledning\(-uttak\)|DR_100_DV-D ID|DR_110_DVD|DR_150_DV-D ID|DR_150_DVD|DR_200_DV-D ID|DR_32_PE100|GrøftÅpen|HS_650|HS_650_BTG|HY_100_PP|ISO_Leca|ISO_XPS|Nedføringsrenne_Plassbygd|Nøkkelskap for slokkevann|OK_1000_BTG|OK_1200_BTG|OK_1400_BTG|OK_1600_BTG|OK_2000_BTG|OK_400_PP|OK_630_PP|OK_650_BTG|OV_1000_BTG|OV_100_DV-O ID|OV_1200_BTG|OV_1400_BTG|OV_150_DV-O ID|OV_1600_BTG|OV_160_PVC|OV_200_DV-O ID|OV_200_DV-O OD|OV_200_PVC-iso|OV_225_PVC|OV_250_DV-O ID|OV_250_PVC-iso|OV_300_DV-D ID|OV_300_DV-O ID|OV_400_DV-O ID|OV_500_DV-O ID|OV_600_BTG|OV_600_DV-O ID|OV_800_BTG|SFG_1000|SFG_1000_BTG|SFK_1000|SFK_1000_BTG|SFR_1000|SFR_1000_BTG|SK_1400_BTG|SP_160_PVC|SP_250_PVC|SP_315_PVC|ST DV_200|ST DV_400|ST DV_400_PP|ST DV_630|ST_200_PP|ST_400|ST_400_PP|Stengeventil\(brannvannsledninger\)|VK_1600_BTG|VK_2000_BTG|VK_2400_BTG|VK_650_BTG|VL_110_PE 100|VL_110_PVC|VL_160_PE 100|VL_200_PE 100|VL_250_PE100 ISO|VL_250_SJK|VL_280_PE100 RC PP|VL_315_PE100|VL_315_PE100 RC|VR_406_ST|VS_200_DV-O ID|VS_200_DVO|Vannkum)$/;
-const VAA_HHH_REGEX = /^[A-Za-z]{3}\d+$/;
-
-const UTS_BNN_REGEX = /^(?:A1|A3)$/;
-const UTS_BNN_NAME_REGEX = /^(?:Dagsone,\ Ensby\ \-\ Midtskog|Dagsone,\ Storhove\ \-\ Ødegården)$/;
-const UTS_CNN_REGEX = /^(?:A1)$/;
-const UTS_CNN_NAME_REGEX = /^(?:Vei,\ E6\ Hovedvei)$/;
-const UTS_DNN_REGEX = /^(?:P1)$/;
-const UTS_DNN_NAME_REGEX = /^(?:Sikkerhetssystem)$/;
-const UTS_EE_REGEX = /^(?:CL1)$/;
-const UTS_EE_NAME_REGEX = /^(?:Gjerde\-\ og\ rekkverkssystem)$/;
-const UTS_FFF_REGEX = /^(?:RQC101)$/;
-const UTS_FFF_NAME_REGEX = /^Støyskjerm$/;
-const UTS_GGG_REGEX = /^(?:FQD101|FQD102|FQD103|FQD104|FQD105|FQD106|FQD107|FQD109|FQD110|FQD111|FQD112|FQD113|FQD114|FQD115|FQD116|FQD121|FQD122|RQC101|RQC102|RQC103|RUB101|ULG101|ULG102)$/;
-const UTS_GGG_NAME_REGEX = /^(?:9717554|Betongrekkverk,\ Styrkeklasse\ H1|Betongrekkverk,\ Styrkeklasse\ L2|Ettergivende\ rekkverksende|Heve\-\/senkebom|Nedføring|Rekkverksskinne,\ Styrkeklasse\ H1|Rekkverksskinne,\ Styrkeklasse\ H2|Rekkverksskinne,\ Styrkeklasse\ L2|Rekkverksskinne,\ Styrkeklasse\ N2|Rekkverksskinne,\ Styrkeklasse\ Overgangsrekkverk\ H1\ stålskinne\ til\ H1\ betong|Rekkverksskinne,\ Styrkeklasse\ Overgangsrekkverk\ H1\ stålskinne\ til\ L2\ stålskinne|Rekkverksskinne,\ Styrkeklasse\ Overgangsrekkverk\ H1\ stålskinne\ til\ Støtpute|Rekkverksskinne,\ Styrkeklasse\ Overgangsrekkverk\ H1\ stålskinne\ til\ ettergivende\ rekkverksende|Rekkverksskinne,\ Styrkeklasse\ Overgangsrekkverk\ L2\ stålskinne\ til\ L2\ betong|Rekkverksskinne,\ Styrkeklasse\ Overgangsrekkverk\ L2\ stålskinne\ til\ Støtpute|Rekkverksskinne,\ Styrkeklasse\ Overgangsrekkverk\ N2\ stålskinne\ til\ H2\ stålskinne|Rekkverksskinne,\ Styrkeklasse\ Overgangsrekkverk\ N2\ stålskinne\ til\ L2\ betong|Rekkverksskinne,\ Styrkeklasse\ Overgangsrekkverk\ N2\ stålskinne\ til\ L2\ stålskinne|Spesialfundament_MCS\ 51_58_61_utvidet|Støtpute|Støyskjerm,\ Dim\ 1000,200,8000|Støyskjerm,\ Dim\ 1000,200,150000|Støyskjerm,\ Dim\ 2000,200,140000)$/;
-const UTS_HHH_REGEX = /^(?:RQC1)$/;
-const UTS_HHH_NAME_REGEX = /^id\. .+$/;
-const UTS_REQUIRED_DNN_BY_EE = {
-  CL1: { dnn: 'P1', dnnName: 'Sikkerhetssystem' }
-};
-
-const BYGGTEK_BNN_REGEX = /^D1$/;
-const BYGGTEK_BNN_NAME_REGEX = /^Tunnel, Fåbergtunnelen$/;
-const BYGGTEK_CNN_REGEX = /^(?:A1|A2|B1|B2|D1|D2|D3|D4|D5|D6|D7|D8|D9|D10|D11)$/;
-const BYGGTEK_CNN_NAME_REGEX = /^(?:Vei i tunnel, Nordgående|Vei i tunnel, Sørgående|Teknisk bygg, Nord|Teknisk bygg, Sør|Tverrslag 1|Tverrslag 2|Tverrslag 3|Tverrslag 4|Tverrslag 5|Tverrslag 6|Tverrslag 7|Tverrslag 8|Tverrslag 9|Tverrslag 10|Tverrslag 11)$/;
-const BYGGTEK_DNN_REGEX = /^(?:F1|K1)$/;
-const BYGGTEK_DNN_NAME_REGEX = /^(?:Vannsystem|Elkraftsystem)$/;
-const BYGGTEK_EE_REGEX = /^(?:BB1|BC1|BD1|BD2|BE1|BF1|CG1|JK1|PB1|PC1)$/;
-const BYGGTEK_EE_NAME_REGEX = /^(?:Brannslokkesystem|Fundamentering i bakke|Gulvsystem|Jordingssystem|Kabelføringssystem|Overbygning|Taksystem|Underbygning|Vann- og fuktforebyggende system|Veggsystem)$/;
-const BYGGTEK_FFF_REGEX = /^(?:FMH101|FRB101|HQB101|QQC101|QQD101|RQB101|UBA101|UCA101|ULE101|ULG101|ULK101|ULK102|ULK103|ULM101|UMA101|UQB101|UQB102|UTA101|XEE101)$/;
-const BYGGTEK_FFF_NAME_REGEX = /^(?:Armering|Betongavretting|Betongelement|Bjelke|Brannsikring|Bunnplate|Dekke|Dør|Festebolt|Filterlag|Forankringsbolt|Fundament|Fylling|Jordelektrode\/spyd|Luke|Membran|Mutter|Rist|Skap|Trekkekum|Vegg|Veggelement)$/;
-const BYGGTEK_GGG_REGEX = /^(?:FMH101|FRB101|HQB101|HQB102|QQC110|QQC111|QQC112|QQD110|QQD111|RQB101|UBA101|UCA101|ULE101|ULE102|ULE103|ULE104|ULE105|ULE106|ULE107|ULE108|ULE109|ULG101|ULG102|ULG104|ULK101|ULK102|ULM101|ULM102|ULM103|UMA101|UMA103|UQB101|UQB102|UQB103|UQB104|UQB105|UQB107|UQB108|UTA101|UTA102|UTA103|XEE101)$/;
-const BYGGTEK_GGG_NAME_REGEX = /^(?:Avrettingslag type Fk 0\/32|Avrettingslag type Fk 22\/63|Betongavretting type B30|Betonginnfesting type B35|Bjelkeinnfesting UPE160|Bjelkeinnfesting UPE180|Bjelkeinnfesting UPE200|Bjelkeinnfesting UPE220|Brannsperre|Brannvannsluke|Brannvannsskap|Bunnplate i betong B35|Dekke i betong B35|Dekke type dørkeplate|Festebolt i berg M30|Festebolt i berg M33|Festebolt i berg Ø25|Festebolt i betong M30|Festebolt type betong M12|Festebolt type trekkekrok berg Ø20|Festebolt type trekkekrok betong|Filterlag type diffusjonssperre|Forankringsbolt veggelement|Fundament|Fundament veggelement|Inspeksjonsluke|Jordelektrode type innstøpt|Kioskdør|Membran type I Håndbok N500|Mutter type stål M12|Mutter type stål M30|Mutter type stål M33|Oppfylling type Fk 22\/120|Prefabrikert dekke i betong B35|Prefabrikert tak i betong B35|Prefabrikert vegg i betong B35|Rømningsdør|Sikkerhetsrist|Spesialkum nødkiosk|Stålprofil type HEB100|Stålprofil type L-100x100x10|Stålprofil type UPE160|Stålprofil type UPE180|Stålprofil type UPE200|Stålprofil type UPE220|Teknisk dør|Vann&frostsikring veggelement|Vegg i betong B35|Vegg type nødgjennomgang|Vegg type nødkiosk|Ventilasjonsrist)$/;
-const BYGGTEK_HHH_REGEX = /^[A-Za-z]{3}\d{1,5}$/;
-const BYGGTEK_HHH_NAME_REGEX = /^Posisjonsnummer \d+$/;
-
-const BYGGTEK_NO_DNN_EE = new Set(['BB1','BC1','BD1','BD2','BE1','BF1','CG1']);
-const BYGGTEK_REQUIRED_DNN_BY_EE = {
-  JK1: { dnn: 'K1', dnnName: 'Elkraftsystem' },
-  PC1: { dnn: 'K1', dnnName: 'Elkraftsystem' },
-  PB1: { dnn: 'F1', dnnName: 'Vannsystem' }
-};
-
-const SKO_BNN_REGEX = /^(?:A1|A2)$/;
-const SKO_BNN_NAME_REGEX = /^(?:Dagsone, Storhove - Ødegården|Dagsone, Ødegården - Ensby)$/;
-const SKO_CNN_REGEX = /^(?:A1|A2|A6)$/;
-const SKO_CNN_NAME_REGEX = /^(?:Gang og sykkelvei|Vei, E6 Hovedvei|Vei, Fylkesvei)$/;
-const SKO_DNN_REGEX = /^M1$/;
-const SKO_DNN_NAME_REGEX = /^Informasjons- og kommunikasjonssystem$/;
-const SKO_EE_REGEX = /^(?:ME2)$/;
-const SKO_EE_NAME_REGEX = /^(?:Skiltsystem)$/;
-const SKO_FFF_REGEX = /^(?:PFA102|PHA101|PHA102|PHD102|PHD103|PHD13|UBF101|ULG105)$/;
-const SKO_FFF_NAME_REGEX = /^(?:Signalhode|Skilt|Skiltfundament|Skiltmast|Skiltplate|Skiltportal|Skiltportalfundament|VariabeltSkilt)$/;
-const SKO_GGG_REGEX = /^(?:PFA101|PFA103|PHA101|PHA102|PHD103|PHD105|PHD106|PHD107|PHD108|PHD109|PHD110|PHD111|PHD113|PHD114|PHD115|PHD117|PHD118|PHD119|PHD120|PHD122|PHD125|PHD126|PHD130|PHD131|PHD132|PHD140|PHD141|PHD142|PHD143|PHD144|PHD145|PHD146|PHD147|PHD148|PHD149|UBF102|UBF103|ULG105|ULG106|ULG107|ULG108|ULG109)$/;
-const SKO_GGG_NAME_REGEX = /^(?:9717749_K115_B|9717749_K115_F|9720093 Skiltfundament BGS med skruelås|9720094 skiltfundament BGL med plastkilelås|9720548_Lattix 4425|9720974 Fundament SH4|9720975 Fundament SH3 T|9720977 Fundament SH2 T|9720978 Fundament SH2|9720979 Fundament SH1 T|9720981 Fundament SH1|9721432_K130_B|Avkjøringstavle: 1000 m-tavle|Avkjøringstavle: 500 m-tavle|Avstandsskilt|Fartsgrense: 60km\/t|Forkjørsveg|Fullgrafisk|Gang- og sykkelveg|Halvportal|Havarilomme|Helportal|Hindermarkering|Høydegrense|K115_Telia|K137_B_2|Kjørefeltsignal|Kjøring til eiendommene tillatt|Lattix Large - 4425 \(250mm\)|Mekanisk|Motortrafikkveg|Motorveg|Nødstasjon|Påbudt kjørerefelt: Høyre|Påbudt rundkjøring|Rødt stoppblinksignal|Samleskilt for vegvisning|Sammenfletting|Skiltpunkt|Skiltstolpe ø60mm|Skiltstolpe ø89mm|Slutt på motorveg|Stedsnavskilt: Kommune- og fylkeskommunegrenseskilt|Stedsnavskilt: Tunnelnavnskilt|Traftech SafeHit SH1 NE mast \(90mm\)|Traftech SafeHit SH2 NE mast \(145mm\)|Traftech SafeHit SH3 NE mast \(155mm\)|Traftech SafeHit SH4 NE mast \(165mm\)|Underskilt: Avstand|Vegruteskilt: Vegnummer for europaveg|Vikeplikt)$/;
-const SKO_HHH_REGEX = /^(?:PFA1|PFA10|PFA11|PFA12|PFA13|PFA14|PFA15|PFA16|PFA17|PFA18|PFA19|PFA2|PFA20|PFA21|PFA3|PFA4|PFA5|PFA6|PFA7|PFA8|PFA9|PHA1|PHA10|PHA11|PHA12|PHA13|PHA14|PHA15|PHA16|PHA17|PHA18|PHA19|PHA2|PHA20|PHA21|PHA22|PHA23|PHA24|PHA25|PHA26|PHA27|PHA28|PHA29|PHA3|PHA30|PHA31|PHA32|PHA33|PHA34|PHA35|PHA36|PHA37|PHA38|PHA39|PHA4|PHA40|PHA41|PHA42|PHA43|PHA44|PHA45|PHA46|PHA47|PHA48|PHA49|PHA5|PHA50|PHA51|PHA52|PHA53|PHA54|PHA55|PHA56|PHA57|PHA58|PHA59|PHA6|PHA60|PHA61|PHA62|PHA7|PHA8|PHA9|PHD1|PHD10|PHD11|PHD2|PHD3|PHD4|PHD5|PHD6|PHD7|PHD8|PHD9|UBF1|UBF3|UBF4|UBF5|UBF7|UBF8|UBF9|ULG1|ULG2|ULG3|ULG4)$/;
-const SKO_HHH_NAME_REGEX = /^(?:id\. 0711101|id\. 0711103|id\. 0711104|id\. 0711105|id\. 0711106|id\. 0711107|id\. 0711109|id\. 0711110|id\. 0711115|id\. 0711117|id\. 0711119|id\. 0711121|id\. 0711125|id\. 0721102|id\. 0721104|id\. 0721106|id\. 0721108|id\. 0721110|id\. 0721112|id\. 0721114|id\. 0721116|id\. 0721118|id\. 0721120|id\. 0721122|id\. 0721124|id\. 0721125|id\. 0721125_Høyre_Telia|id\. 0721125_Venstre|id\. 0721126|id\. 0721127|id\. 0721128|id\. 0721130|id\. 0721132|id\. 0721134|id\. 0721136|id\. 0721138|id\. 0721139|id\. 0721141|id\. 0721143|id\. 0721145|id\. 0721154|id\. 0721155|id\. 0721156|id\. 0721157|id\. 0721158|id\. 0721159|id\. 08101|id\. 08102|id\. 08103|id\. 08104|id\. 08105|id\. 08106|id\. 08107|id\. 08108|id\. 08109|id\. 0811101|id\. 0811103|id\. 0811105|id\. 0811107|id\. 0811109|id\. 0811111|id\. 0811113|id\. 0811115|id\. 0811117|id\. 0811119|id\. 0811121|id\. 0811123|id\. 0811125|id\. 0811127|id\. 0811129|id\. 0811131|id\. 0811133|id\. 0811135|id\. 0811137|id\. 0811139|id\. 0811141|id\. 0811143|id\. 0811145|id\. 0811145_Høyre|id\. 0811145_Venstre_Telia|id\. 0811147|id\. 0811149|id\. 0811151|id\. 0811153|id\. 0811157|id\. 0811159|id\. 0811161|id\. 0811163|id\. 0811165|id\. 0821101|id\. 0821102|id\. 0821103|id\. 0821104|id\. 0821106|id\. 0821108|id\. 0821109|id\. 0821111|id\. 0821113|id\. 0821115|id\. 0821118|id\. 0821120|id\. 0821122|id\. 0821124|id\. 0821126|id\. 0821128|id\. 0821130|id\. 0821132|id\. 0821134|id\. 0821136|id\. 0821138|id\. 0821140|id\. 0821142|id\. 0821144|id\. 0821146|id\. 0821148|id\. 67001|id\. 67002|id\. 67003|id\. 67004|id\. 67005|id\. 67006)$/;
-
-const LARK_GGG_REGEX = /^(?:FQD107|FSD101|FSD103|FSD104|FSD106|FSD107|NCA103|RUA101|RUA102|RUA103|TRA101|ULM101|UTA101|UTA102|ULM102|UTA103)$/;
-const LARK_GGG_NAME_REGEX = /^(?:Fyllingsskråning|Gjerdeport|Matjord|Natursteinsblokk|Oppfylling|Plastring bekk|Revegetering|Sikringsgjerde|Slitelag, Ska16|Steinmaterialer|Tilsåing|Tre|Tørrsteinsmur|Viltgjerde|Betongelementer|Tilbakefylling)$/;
-const LARK_FFF_REGEX = /^(?:FQD101|FSD102|NCA103|RUA101|TRA101|ULM103|UTA101|UTA104)$/;
-const LARK_FFF_NAME_REGEX = /^(?:Fylling|Fyllingsskråning|Gjerde|Rekkverk|Slitelag|Støttekonstruksjon|Terrengforming|Vegetasjon)$/;
-const LARK_HHH_REGEX = /^(?:FQD1|FQD10|FQD11|FQD12|FQD13|FQD14|FQD15|FQD16|FQD17|FQD18|FQD19|FQD2|FQD20|FQD21|FQD22|FQD3|FQD4|FQD5|FQD6|FQD7|FQD8|FQD9|FSD1|FSD10|FSD2|FSD3|FSD4|FSD5|FSD6|FSD7|FSD8|FSD9|NCA1|NCA2|RUA1|RUA10|RUA11|RUA12|RUA2|RUA3|RUA4|RUA5|RUA6|RUA7|RUA8|RUA9|TRA1|TRA10|TRA11|TRA12|TRA13|TRA14|TRA15|TRA16|TRA17|TRA18|TRA19|TRA2|TRA20|TRA21|TRA22|TRA23|TRA24|TRA25|TRA26|TRA27|TRA28|TRA29|TRA3|TRA30|TRA31|TRA32|TRA33|TRA4|TRA5|TRA6|TRA7|TRA8|TRA9|ULM1|ULM10|ULM11|ULM2|ULM3|ULM4|ULM5|ULM6|ULM7|ULM8|ULM9|UTA1|UTA2)$/;
-const LARK_HHH_NAME_REGEX = /^.+$/;
-const LARK_RDS_REGEX = /^<E6SØ>-(?:(?:(?:A1|A2|A3|A4|B1)\.(?:A1)\.(?:BA1|RA1))|(?:(?:A1|A2|A3|A4|B1)(?:\.(?:A1))?\.(?:CB1|CJ1))|(?:(?:A1|A2|A3|A4|B1)(?:\.(?:A1))?\.P1\.CL1))\.(?:FQD101|FSD102|NCA103|RUA101|TRA101|ULM103|UTA101|UTA104)\.(?:FQD107|FSD101|FSD103|FSD104|FSD106|FSD107|NCA103|RUA101|RUA102|RUA103|TRA101|ULM101|UTA101|UTA102|ULM102|UTA103)\.(?:FQD1|FQD10|FQD11|FQD12|FQD13|FQD14|FQD15|FQD16|FQD17|FQD18|FQD19|FQD2|FQD20|FQD21|FQD22|FQD3|FQD4|FQD5|FQD6|FQD7|FQD8|FQD9|FSD1|FSD10|FSD2|FSD3|FSD4|FSD5|FSD6|FSD7|FSD8|FSD9|NCA1|NCA2|RUA1|RUA10|RUA11|RUA12|RUA2|RUA3|RUA4|RUA5|RUA6|RUA7|RUA8|RUA9|TRA1|TRA10|TRA11|TRA12|TRA13|TRA14|TRA15|TRA16|TRA17|TRA18|TRA19|TRA2|TRA20|TRA21|TRA22|TRA23|TRA24|TRA25|TRA26|TRA27|TRA28|TRA29|TRA3|TRA30|TRA31|TRA32|TRA33|TRA4|TRA5|TRA6|TRA7|TRA8|TRA9|ULM1|ULM10|ULM11|ULM2|ULM3|ULM4|ULM5|ULM6|ULM7|ULM8|ULM9|UTA1|UTA2)$/;
-
-const SKO_AAAAAA_REGEX = /^(?:<E6SØ>)$/;
-const SKO_RDS_REGEX = /^<E6SØ>-(?:A1|A2|A3|A4)\.(?:A1|A2|A6)\.M1\.ME2\.(?:PFA102|PHA101|PHA102|PHD102|PHD103|PHD13|UBF101|ULG105)\.(?:PFA101|PFA102|PFA103|PHA101|PHA102|PHD101|PHD102|PHD103|PHD105|PHD106|PHD107|PHD108|PHD109|PHD110|PHD111|PHD112|PHD113|PHD114|PHD115|PHD116|PHD117|PHD118|PHD119|PHD120|PHD122|PHD123|PHD124|PHD125|PHD126|PHD127|PHD128|PHD129|PHD130|PHD131|PHD132|PHD133|PHD134|PHD135|PHD136|PHD137|PHD138|PHD139|PHD140|PHD141|PHD142|PHD143|PHD144|PHD145|PHD146|PHD147|PHD148|PHD149|UBF101|UBF102|UBF103|ULG101|ULG102|ULG103|ULG104|ULG105|ULG106|ULG107|ULG108|ULG109)\.(?:PFA(?:[1-9]|1[0-9]|2[01])|PHA(?:[1-9]|[1-6][0-9]|7[0-3])|PHD(?:[1-9]|1[0-9]|25|31|37|43|49|55|61|67|73)|UBF(?:1|3|4|5|7|8|9)|ULG[1-4])$/;
-
-const JBT_AAAAAA_REGEX = /^(?:<E6SØ>)$/;
-const JBT_BNN_REGEX = /^(?:A1|A2|A3|A4)$/;
-const JBT_BNN_NAME_REGEX = /^(?:Dagsone, Storhove - Ødegården|Dagsone, Ødegården - Ensby|Dagsone, Ensby - Midtskog|Dagsone, Midtskog - Øyer)$/;
-const JBT_CNN_REGEX = /^(?:A1|A2|A5|A6)$/;
-const JBT_CNN_NAME_REGEX = /^(?:Vei, E6 Hovedvei|Vei, Fylkesvei|Gang og sykkelvei|Parkeringsplass|Udefinerte øvrige tiltak)$/;
-const JBT_DNN_REGEX = /^K1$/;
-const JBT_DNN_NAME_REGEX = /^Elkraftsystem$/;
-const JBT_EE_REGEX = /^JK1$/;
-const JBT_EE_NAME_REGEX = /^Kabelføringssystem$/;
-const JBT_FFF_REGEX = /^ULR101$/;
-const JBT_FFF_NAME_REGEX = /^Kontaktledning \(KL\)$/;
-const JBT_GGG_REGEX = /^(?:ULR101|ULR102)$/;
-const JBT_GGG_NAME_REGEX = /^(?:Utligger|KL-mast)$/;
-const JBT_HHH_REGEX = /^ULR[1-6]$/;
-const JBT_HHH_NAME_REGEX = /^id\. [1-6]$/;
-const JBT_RDS_REGEX = /^<E6SØ>-(?:A1|A2|A3|A4)\.(?:A1|A2|A5|A6)\.K1\.JK1\.ULR101\.(?:ULR101|ULR102)\.ULR[1-6]$/;
-
-const MERKING_AAAAAA_REGEX = /^<E6SØ>$/;
-const MERKING_BNN_REGEX = /^(A1|A2|A3|A4|D1)$/;
-const MERKING_BNN_NAME_REGEX = /^(Dagsone, Storhove - Ødegården|Dagsone, Ødegården - Ensby|Dagsone, Ensby - Midtskog|Dagsone, Midtskog - Øyer|Tunnel, Fåbergtunnelen)$/;
-const MERKING_CNN_REGEX = /^(A1|A2|A4)$/;
-const MERKING_CNN_NAME_REGEX = /^(Vei, E6 Hovedvei|Vei, Fylkesvei|Vei, Øvrig vei|Vei i tunnel, Sørgående)$/;
-const MERKING_DNN_REGEX = /^(|--)$/;
-const MERKING_DNN_NAME_REGEX = /^(|--)$/;
-const MERKING_EE_REGEX = /^ME1$/;
-const MERKING_EE_NAME_REGEX = /^Veioppmerkingssystem$/;
-const MERKING_FFF_REGEX = /^(PHE101|PHE102|PHE103|PKB101)$/;
-const MERKING_FFF_NAME_REGEX = /^(OppmerkingForsterket|OppmerkingLangs|OppmerkingTvers|Veioppmerking)$/;
-const MERKING_GGG_REGEX = /^(PHE101|PHE102|PHE103|PHE104|PHE105|PHE106|PHE107|PHE108|PHE109|PHE110|PKB101|PKB102|PKB103)$/;
-const MERKING_GGG_NAME_REGEX = /^(Annet|Dobbel sperrelinje|Heltrukken kantlinje|Heltrukken kantlinje \(Motorveg kl\. A\)|Kjørefeltlinje|Kjøreretning \(1034\.1R\)|Linjer\/symboler|Nedfrest sinusriller|ReferenceLine|Sinusriller|Skillelinje|Sperrelinje|Sperreområde|Stiplet kantlinje|Varsellinje|Vikelinje)$/;
-const MERKING_HHH_REGEX = /^[A-Za-z]{3}\d+$/;
-const MERKING_HHH_NAME_REGEX = /^.+$/;
-const MERKING_RDS_REGEX = /^<E6SØ>-(?:A1|A2|A3|A4|D1)\.(?:A1|A2|A4)\.ME1\.(?:PHE101|PHE102|PHE103|PKB101)\.(?:PHE101|PHE102|PHE103|PHE104|PHE105|PHE106|PHE107|PHE108|PHE109|PHE110|PKB101|PKB102|PKB103)\.[A-Za-z]{3}\d+$/;
-
-const ANKER_RX = {
-  VEI_TAG: /^<E6SØ>-(?:(?:(?:(?:A1\.(?:A1|A2|A3|A4))|(?:A2\.(?:A1|A2))|(?:A3\.(?:A1|A2|A4|A5))|(?:D1\.(?:A1|A2)))\.(?:(?:G1\.JD1)|(?:BA1|BA2|CA1|CB1)))|(?:B1\.CK1))\.(?:FSD102|NCA101|NCA103|NCG101|NDA103|RQA101|RQB102|ULA101|UMC101|UTA101|UTA102|UTA103|UTA104|UTA105|UTB101|WMB102)\.(?:FSD101|FSD102|NCA101|NCA102|NCA103|NCA104|NCA105|NCG101|NCG102|NDA101|RQA101|RQB101|ULA107|ULA108|ULA109|ULA110|ULA111|UMC101|UTA101|UTA102|UTA103|UTA105|UTB101|WMB101)\.[A-Za-z]{3}\d{1,5}$/,
-  TUNNEL_TAG: /^<E6SØ>-D1\.(?:(?:A1|A2)\.(?:BA1\.UNA101\.UNA101\.UNA1|CD1\.NDA101\.NDA101\.(?:NDA1|NDA2)|CG1\.(?:RQB101\.RQB103\.RQB1|UMH101\.UMH101\.UMH1))|(?:B1|B2|D1|D2|D3|D4|D5|D6|D7|D8|D9|D10|D11)\.(?:BA1\.UNA101\.UNA101\.UNA1|CG1\.RQB101\.RQB104\.RQB1))$/,
-  VAA_TAG: /^<E6SØ>-(?:A1(?:\.(?:A1|A2|A3|A4|A5|A6|A7|B1))?|A2(?:\.(?:A1|A2|A3|A4|A5|A6|A7|B1))?|A3(?:\.(?:A1|A2|A3|A4|A5|A6|A7|B1))?|A4(?:\.(?:A1|A2|A3|A4|A5|A6|A7|B1))?|B1|C1(?:\.(?:A1|B1))?|C2(?:\.(?:A1|B1))?|C3(?:\.(?:A1|B1))?|C4(?:\.(?:A1|B1))?|C5(?:\.(?:A1|B1))?|D1(?:\.(?:A1|A2|B1|B2|C1|C2|C3|C4|D1|D2|D3|D4|D5|D6|D7|D8|D9|D10|D11))?)\.(?:(?:F1\.(?:PB1|JB1))|(?:G1\.(?:JD1|JD2))|(?:K1\.JK1)|BA1)\.(?:RQA102|UCA104|UCA105|UCA106|UCA107|UCA108|UCA109|UCA110|WMB101|WPA102|WPA103|WPA105|WPA107|WPA108|WPA109|WPA110|WPA111|XMA101)\.(?:RQA101|RQA102|UCA101|UCA102|UCA103|UCA104|UCA105|UCA106|UCA107|UCA108|UCA110|UCA111|UCA112|UCA113|WMB101|WPA101|WPA102|WPA103|WPA104|WPA105|WPA106|WPA107|WPA108|WPA109|WPA111|WPA112|WPA113|WPA114|WPA115|WPA116|WPA117|WPA118|WPA119|WPA121|WPA122|WPA123|WPA124|XMA101)\.[A-Za-z]{3}\d+$/,
-  SKO_TAG: /^<E6SØ>-(?:A1|A2|A3|A4)\.(?:A1|A2|A6)\.M1\.ME2\.(?:PFA102|PHA101|PHA102|PHD102|PHD103|PHD13|UBF101|ULG105)\.(?:PFA101|PFA102|PFA103|PHA101|PHA102|PHD101|PHD102|PHD103|PHD105|PHD106|PHD107|PHD108|PHD109|PHD110|PHD111|PHD112|PHD113|PHD114|PHD115|PHD116|PHD117|PHD118|PHD119|PHD120|PHD122|PHD123|PHD124|PHD125|PHD126|PHD127|PHD128|PHD129|PHD130|PHD131|PHD132|PHD133|PHD134|PHD135|PHD136|PHD137|PHD138|PHD139|PHD140|PHD141|PHD142|PHD143|PHD144|PHD145|PHD146|PHD147|PHD148|PHD149|UBF101|UBF102|UBF103|ULG101|ULG102|ULG103|ULG104|ULG105|ULG106|ULG107|ULG108|ULG109)\.(?:PFA(?:[1-9]|1[0-9]|2[01])|PHA(?:[1-9]|[1-6][0-9]|7[0-3])|PHD(?:[1-9]|1[0-9]|25|31|37|43|49|55|61|67|73)|UBF(?:1|3|4|5|7|8|9)|ULG[1-4])$/,
-  JBT_TAG: JBT_RDS_REGEX,
-  MERKING_TAG: MERKING_RDS_REGEX,
-  LARK_TAG: /^<E6SØ>-(?:(?:(?:A1|A2|A3|A4|B1)\.(?:A1)\.(?:BA1|RA1))|(?:(?:A1|A2|A3|A4|B1)(?:\.(?:A1))?\.(?:CB1|CJ1))|(?:(?:A1|A2|A3|A4|B1)(?:\.(?:A1))?\.P1\.CL1))\.(?:FQD101|FSD102|NCA103|RUA101|TRA101|ULM103|UTA101|UTA104)\.(?:FQD107|FSD101|FSD103|FSD104|FSD106|FSD107|NCA103|RUA101|RUA102|RUA103|TRA101|ULM101|UTA101|UTA102|ULM102|UTA103)\.(?:FQD1|FQD10|FQD11|FQD12|FQD13|FQD14|FQD15|FQD16|FQD17|FQD18|FQD19|FQD2|FQD20|FQD21|FQD22|FQD3|FQD4|FQD5|FQD6|FQD7|FQD8|FQD9|FSD1|FSD10|FSD2|FSD3|FSD4|FSD5|FSD6|FSD7|FSD8|FSD9|NCA1|NCA2|RUA1|RUA10|RUA11|RUA12|RUA2|RUA3|RUA4|RUA5|RUA6|RUA7|RUA8|RUA9|TRA1|TRA10|TRA11|TRA12|TRA13|TRA14|TRA15|TRA16|TRA17|TRA18|TRA19|TRA2|TRA20|TRA21|TRA22|TRA23|TRA24|TRA25|TRA26|TRA27|TRA28|TRA29|TRA3|TRA30|TRA31|TRA32|TRA33|TRA4|TRA5|TRA6|TRA7|TRA8|TRA9|ULM1|ULM10|ULM11|ULM2|ULM3|ULM4|ULM5|ULM6|ULM7|ULM8|ULM9|UTA1|UTA2)$/,
-  BRU_TAG: /^<E6SØ>-(?:(?:C4\.(?:(?:P1\.CL1)|(?:K1\.(?:JK1|PC1))|(?:BA1|BC1|BD1|CG1)))|(?:D1\.(?:C3|C4)\.(?:(?:P1\.CL1)|(?:K1\.(?:JK1|PC1))|(?:BA1|BC1|BD1|CG1))))\.(?:RQB101|UTA105|UMA102|ULK101|ULH101|ULK102|RQB102|UPC101|ULG101|ULH102|ULK103|UQA101|QCA101|ULF101|UAH101|ULM101|RQB103|FSG101|UTA102|FQD101|UTA103|UMA101|XNF101)\.(?:FQD101|FSG101|QCA101|RQB101|RQB102|RQB103|RQB104|UAH101|ULF101|ULG101|ULH101|ULK101|ULM101|UMA101|UPC101|UQA101|UTA101|UMA102|UMA103|UMA104|UMA105|UMA106|UMA107|UMA108|UMA109|UMA110|UMA111|UMA112|UMA113|UMA114|UMA115|UMA116|XNF104|XNF115)\.[A-Z]{3}\d{1,5}$/,
-  UTS_TAG: /^\s*<E6SØ>[-‐‑‒–—−](?:A1|A3)\.A1\.P1\.CL1\.RQC101\.(?:FQD101|FQD102|FQD103|FQD104|FQD105|FQD106|FQD107|FQD109|FQD110|FQD111|FQD112|FQD113|FQD114|FQD115|FQD116|FQD121|FQD122|RQC101|RQC102|RQC103|RUB101|ULG101|ULG102)\.RQC1\s*$/,
-  BYGGTEK_TAG: /^<E6SØ>-D1\.(?:A1|A2|B1|B2|D1|D2|D3|D4|D5|D6|D7|D8|D9|D10|D11)\.(?:(?:K1\.(?:JK1|PC1))|(?:F1\.PB1)|(?:BB1|BC1|BD1|BD2|BE1|BF1|CG1))\.(?:FMH101|FRB101|HQB101|QQC101|QQD101|RQB101|UBA101|UCA101|ULE101|ULG101|ULK101|ULK102|ULK103|ULM101|UMA101|UQB101|UQB102|UTA101|XEE101)\.(?:FMH101|FRB101|HQB101|HQB102|QQC110|QQC111|QQC112|QQD110|QQD111|RQB101|UBA101|UCA101|ULE101|ULE102|ULE103|ULE104|ULE105|ULE106|ULE107|ULE108|ULE109|ULG101|ULG102|ULG104|ULK101|ULK102|ULM101|ULM102|ULM103|UMA101|UMA103|UQB101|UQB102|UQB103|UQB104|UQB105|UQB107|UQB108|UTA101|UTA102|UTA103|XEE101)\.[A-Za-z]{3}\d{1,5}>?$/
-};
-
-const DISCIPLINE_RULES = {
-  JBT: {
-    label: 'JBT / Jernbaneteknikk',
-    required: ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16'],
-    optional: [],
-    regex: {
-      '01': JBT_RDS_REGEX,
-      '02': JBT_AAAAAA_REGEX,
-      '03': JBT_BNN_REGEX,
-      '04': JBT_BNN_NAME_REGEX,
-      '05': JBT_CNN_REGEX,
-      '06': JBT_CNN_NAME_REGEX,
-      '07': JBT_DNN_REGEX,
-      '08': JBT_DNN_NAME_REGEX,
-      '09': JBT_EE_REGEX,
-      '10': JBT_EE_NAME_REGEX,
-      '11': JBT_FFF_REGEX,
-      '12': JBT_FFF_NAME_REGEX,
-      '13': JBT_GGG_REGEX,
-      '14': JBT_GGG_NAME_REGEX,
-      '15': JBT_HHH_REGEX,
-      '16': JBT_HHH_NAME_REGEX
-    }
-  },
-  MERKING: {
-    label: 'MERKING / F-merking',
-    required: ['01','02','03','04','05','06','09','10','11','12','13','14','15','16'],
-    optional: ['07','08'],
-    regex: {
-      '01': MERKING_RDS_REGEX,
-      '02': MERKING_AAAAAA_REGEX,
-      '03': MERKING_BNN_REGEX,
-      '04': MERKING_BNN_NAME_REGEX,
-      '05': MERKING_CNN_REGEX,
-      '06': MERKING_CNN_NAME_REGEX,
-      '07': MERKING_DNN_REGEX,
-      '08': MERKING_DNN_NAME_REGEX,
-      '09': MERKING_EE_REGEX,
-      '10': MERKING_EE_NAME_REGEX,
-      '11': MERKING_FFF_REGEX,
-      '12': MERKING_FFF_NAME_REGEX,
-      '13': MERKING_GGG_REGEX,
-      '14': MERKING_GGG_NAME_REGEX,
-      '15': MERKING_HHH_REGEX,
-      '16': MERKING_HHH_NAME_REGEX
-    }
-  },
-  SKO: {
-    label: 'Skilt og oppmerking',
-    required: ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16'],
-    optional: [],
-    regex: {
-      '01': SKO_RDS_REGEX,
-      '02': SKO_AAAAAA_REGEX,
-      '03': SKO_BNN_REGEX,
-      '04': SKO_BNN_NAME_REGEX,
-      '05': SKO_CNN_REGEX,
-      '06': SKO_CNN_NAME_REGEX,
-      '07': SKO_DNN_REGEX,
-      '08': SKO_DNN_NAME_REGEX,
-      '09': SKO_EE_REGEX,
-      '10': SKO_EE_NAME_REGEX,
-      '11': SKO_FFF_REGEX,
-      '12': SKO_FFF_NAME_REGEX,
-      '13': SKO_GGG_REGEX,
-      '14': SKO_GGG_NAME_REGEX,
-      '15': SKO_HHH_REGEX,
-      '16': SKO_HHH_NAME_REGEX
-    }
-  },
-  KNS: {
-    label: 'Konstruksjon / bru',
-    required: ['01','02','03','04','09','10','11','12','13','14','15','16'],
-    optional: ['05','06','07','08'],
-    regex: {
-      '01': ANKER_RX.BRU_TAG,
-      '02': RX.aaaaaa,
-      '03': RX.bcd,
-      '04': RX.anyText,
-      '05': RX.bcd,
-      '06': RX.anyText,
-      '07': RX.bcd,
-      '08': RX.anyText,
-      '09': RX.ee,
-      '10': RX.anyText,
-      '11': KNS_FFF_REGEX,
-      '12': KNS_FFF_NAME_REGEX,
-      '13': KNS_GGG_REGEX,
-      '14': KNS_GGG_NAME_REGEX,
-      '15': RX.hhh,
-      '16': RX.anyText
-    }
-  },
-  VEI: {
-    label: 'Vei',
-    required: ['01','02','03','04','09','10','11','12','13','14','15','16'],
-    optional: ['05','06','07','08'],
-    regex: {
-      '01': ANKER_RX.VEI_TAG,
-      '02': RX.aaaaaa,
-      '03': VEI_BNN_REGEX,
-      '04': VEI_BNN_NAME_REGEX,
-      '05': VEI_CNN_REGEX,
-      '06': VEI_CNN_NAME_REGEX,
-      '07': VEI_DNN_REGEX,
-      '08': VEI_DNN_NAME_REGEX,
-      '09': VEI_EE_REGEX,
-      '10': VEI_EE_NAME_REGEX,
-      '11': VEI_FFF_REGEX,
-      '12': VEI_FFF_NAME_REGEX,
-      '13': VEI_GGG_REGEX,
-      '14': VEI_GGG_NAME_REGEX,
-      '15': RX.hhh,
-      '16': VEI_HHH_NAME_REGEX
-    }
-  },
-  TUNNEL: {
-    label: 'Tunnel',
-    required: ['01','02','03','04','05','06','09','10','11','12','13','14','15','16'],
-    optional: ['07','08'],
-    regex: {
-      '01': ANKER_RX.TUNNEL_TAG,
-      '02': /^<E6SØ>$/,
-      '03': TUNNEL_BNN_REGEX,
-      '04': TUNNEL_BNN_NAME_REGEX,
-      '05': TUNNEL_CNN_REGEX,
-      '06': TUNNEL_CNN_NAME_REGEX,
-      '07': TUNNEL_DNN_REGEX,
-      '08': TUNNEL_DNN_NAME_REGEX,
-      '09': TUNNEL_EE_REGEX,
-      '10': TUNNEL_EE_NAME_REGEX,
-      '11': TUNNEL_FFF_REGEX,
-      '12': TUNNEL_FFF_NAME_REGEX,
-      '13': TUNNEL_GGG_REGEX,
-      '14': TUNNEL_GGG_NAME_REGEX,
-      '15': TUNNEL_HHH_REGEX,
-      '16': TUNNEL_HHH_NAME_REGEX
-    }
-  },
-  VAA: {
-    label: 'Vann og avløp',
-    required: ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16'],
-    optional: [],
-    regex: {
-      '01': ANKER_RX.VAA_TAG,
-      '02': /^<E6SØ>$/,
-      '03': VAA_BNN_REGEX,
-      '04': VAA_BNN_NAME_REGEX,
-      '05': VAA_CNN_REGEX,
-      '06': VAA_CNN_NAME_REGEX,
-      '07': VAA_DNN_REGEX,
-      '08': VAA_DNN_NAME_REGEX,
-      '09': VAA_EE_REGEX,
-      '10': VAA_EE_NAME_REGEX,
-      '11': VAA_FFF_REGEX,
-      '12': VAA_FFF_NAME_REGEX,
-      '13': VAA_GGG_REGEX,
-      '14': VAA_GGG_NAME_REGEX,
-      '15': VAA_HHH_REGEX,
-      '16': RX.anyText
-    }
-  },
-  UTS: {
-    label: 'Utstyr',
-    required: ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16'],
-    optional: [],
-    regex: {
-      '01': ANKER_RX.UTS_TAG,
-      '02': /^<E6SØ>$/,
-      '03': UTS_BNN_REGEX,
-      '04': UTS_BNN_NAME_REGEX,
-      '05': UTS_CNN_REGEX,
-      '06': UTS_CNN_NAME_REGEX,
-      '07': UTS_DNN_REGEX,
-      '08': UTS_DNN_NAME_REGEX,
-      '09': UTS_EE_REGEX,
-      '10': UTS_EE_NAME_REGEX,
-      '11': UTS_FFF_REGEX,
-      '12': UTS_FFF_NAME_REGEX,
-      '13': UTS_GGG_REGEX,
-      '14': UTS_GGG_NAME_REGEX,
-      '15': UTS_HHH_REGEX,
-      '16': UTS_HHH_NAME_REGEX
-    }
-  },
-  BYGGTEK: {
-    label: 'Byggteknikk',
-    required: ['01','02','03','04','05','06','09','10','11','12','13','14','15','16'],
-    optional: ['07','08'],
-    regex: {
-      '01': ANKER_RX.BYGGTEK_TAG,
-      '02': /^<E6SØ>$/,
-      '03': BYGGTEK_BNN_REGEX,
-      '04': BYGGTEK_BNN_NAME_REGEX,
-      '05': BYGGTEK_CNN_REGEX,
-      '06': BYGGTEK_CNN_NAME_REGEX,
-      '07': BYGGTEK_DNN_REGEX,
-      '08': BYGGTEK_DNN_NAME_REGEX,
-      '09': BYGGTEK_EE_REGEX,
-      '10': BYGGTEK_EE_NAME_REGEX,
-      '11': BYGGTEK_FFF_REGEX,
-      '12': BYGGTEK_FFF_NAME_REGEX,
-      '13': BYGGTEK_GGG_REGEX,
-      '14': BYGGTEK_GGG_NAME_REGEX,
-      '15': BYGGTEK_HHH_REGEX,
-      '16': BYGGTEK_HHH_NAME_REGEX
-    }
-  },
-  LARK: {
-    label: 'Landskap og Geo',
-    required: ['01','02','03','04','09','10','11','12','13','14','15','16'],
-    optional: ['05','06','07','08'],
-    regex: {
-      '01': LARK_RDS_REGEX,
-      '02': RX.aaaaaa,
-      '03': RX.bcd,
-      '04': RX.anyText,
-      '05': RX.bcd,
-      '06': RX.anyText,
-      '07': RX.bcd,
-      '08': RX.anyText,
-      '09': RX.ee,
-      '10': RX.anyText,
-      '11': LARK_FFF_REGEX,
-      '12': LARK_FFF_NAME_REGEX,
-      '13': LARK_GGG_REGEX,
-      '14': LARK_GGG_NAME_REGEX,
-      '15': LARK_HHH_REGEX,
-      '16': LARK_HHH_NAME_REGEX
-    }
-  },
-  SKO_TUNNEL: {
-    label: 'Skilt i tunnel',
-    required: ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16'],
-    optional: [],
-    regex: {
-      '01': SKILT_TUNNEL_RDS_REGEX,
-      '02': /^<[^>]+>$/,
-      '03': /^[A-Z]\d+$/,
-      '04': /.+/,
-      '05': /^[A-Z]\d+$/,
-      '06': /.+/,
-      '07': /^M1$/,
-      '08': /^Informasjons-\s?og\s?kommunikasjonssystem$/,
-      '09': /^[A-Z]{2}\d+$/,
-      '10': /.+/,
-      '11': SKO_TUNNEL_FFF_REGEX,
-      '12': SKO_TUNNEL_FFF_NAME_REGEX,
-      '13': /^[A-Z]{3}\d{3}$/,
-      '14': /.+/,
-      '15': /^[A-Z]{3}\d+$/,
-      '16': /.+/
-    }
-  }
-};
-
-const DISCIPLINE_OPTIONS = [
-  ['AUTO', 'Auto (fra 0_Element → Underdisiplin)'],
-  ['JBT', 'JBT / Jernbaneteknikk'],
-  ['MERKING', 'MERKING / F-merking'],
-  ['VEI', 'VEI'],
-  ['TUNNEL', 'TUNNEL'],
-  ['SKO', 'SKO / Skilt'],
-  ['SKO_TUNNEL', 'SKO / Skilt i tunnel'],
-  ['LARK', 'LARK / Landskap og Geo'],
-  ['KNS', 'KNS / Bru'],
-  ['BYGGTEK', 'BYGGTEK / Byggteknikk'],
-  ['UTS', 'UTS / Utstyr'],
-  ['VAA', 'VAA']
-];
-
 let API = null;
-let allModels = [];
-let validationRows = [];
-let activeFilter = 'all';
-let searchTerm = '';
-let currentModelName = '';
-let skippedStats = {
-  notApplicable: 0,
-  ignoredIfc: 0,
-  missing0Element: 0,
-  knsNoRds: 0,
-  byggtekNoRds: 0,
-  utsConflictVolume: 0
-};
+let workspace = null;
+let checksDone = 0;
 
 const $ = id => document.getElementById(id);
-const btnLoad = $('btnLoad');
-const btnValidate = $('btnValidate');
-const btnReset = $('btnReset');
-const btnColorize = $('btnColorize');
-const btnUncolor = $('btnUncolor');
-const btnExport = $('btnExport');
-const modelSelect = $('modelSelect');
-const disciplineSelect = $('disciplineSelect');
+const btnStart = $('btnStart');
 const statusBar = $('statusBar');
 const modelBadge = $('modelBadge');
-const mainContent = $('mainContent');
+const resultCards = $('resultCards');
+const tableBody = $('tableBody');
 
-function norm(v){ return (v ?? '').toString().trim(); }
-function esc(v){ return norm(v).replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])); }
-function setStatus(msg, cls=''){ statusBar.textContent = msg; statusBar.className = cls; }
-function lastPathPart(v){ return norm(v).split('/').pop().split('\\').pop(); }
-
-function getModelName(m, idx){
-  const direct = [m.name,m.modelName,m.fileName,m.filename,m.displayName,m.file?.name,m.model?.name,m.data?.name,m.metadata?.name].map(norm).filter(Boolean);
-  const ifc = direct.map(lastPathPart).find(v => /\.ifc/i.test(v));
-  if (ifc) return ifc;
-  if (direct.length) return lastPathPart(direct[0]);
-  return `Modell ${idx + 1}`;
+function setStatus(msg, cls='') {
+  statusBar.textContent = msg;
+  statusBar.className = cls;
 }
 
-function looksLikeIfc(v){
-  const s = norm(v).toUpperCase();
-  return /^IFC[A-Z0-9_]+$/.test(s) ? s : '';
-}
-
-function getIfcType(obj){
-  const direct = looksLikeIfc(obj.ifcType || obj.ifcEntity || obj.type || obj.className || '');
-  if (direct) return direct;
-  for (const ps of (obj.properties || [])) {
-    for (const p of (ps.properties || [])) {
-      const c = looksLikeIfc(p.value);
-      if (c) return c;
-    }
-  }
-  return '';
-}
-
-function getProp(obj, pset, propName){
-  const pt = norm(pset).toLowerCase();
-  const target = norm(propName).toLowerCase();
-  for (const ps of (obj.properties || [])) {
-    if (norm(ps.name).toLowerCase() !== pt) continue;
-    for (const p of (ps.properties || [])) {
-      if (norm(p.name).toLowerCase() === target) return norm(p.value);
-    }
-  }
-  return '';
-}
-
-function getPropAny(obj, pset){
-  const pt = norm(pset).toLowerCase();
-  const result = {};
-  for (const ps of (obj.properties || [])) {
-    if (norm(ps.name).toLowerCase() !== pt) continue;
-    for (const p of (ps.properties || [])) result[norm(p.name)] = norm(p.value);
-  }
-  return result;
-}
-
-function isNotApplicableValue(v){
-  const s = norm(v).toLowerCase();
-  return s === 'notapplicable' || s === 'not applicable';
-}
-
-const KNS_NO_RDS_OBJECT_TYPES = new Set([
-  'forskaling',
-  'herdetiltak',
-  'kjøreboks',
-  'metadataobjekt',
-  'stikningsobjekt innstøpt skjøtehylse',
-  'stikningsobjekt innstopt skjotehylse'
-]);
-
-function normalizeNoRdsText(v){
-  return norm(v)
-    .toLowerCase()
-    .replace(/ø/g, 'o')
-    .replace(/æ/g, 'ae')
-    .replace(/å/g, 'a')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function shouldSkipKnsNoRds(meta, discipline){
-  if (discipline !== 'KNS') return false;
-
-  const objectClass = normalizeNoRdsText(meta.objectClass);
-  const objectType = normalizeNoRdsText(meta.objectType);
-
-  if (objectClass !== 'informasjonsobjekt') return false;
-
-  return (
-    KNS_NO_RDS_OBJECT_TYPES.has(objectType) ||
-    objectType.includes('forskaling') ||
-    objectType.includes('herdetiltak') ||
-    objectType.includes('kjoreboks') ||
-    objectType.includes('metadataobjekt') ||
-    (objectType.includes('stikningsobjekt') && objectType.includes('skjotehylse'))
-  );
-}
-
-function shouldSkipByggtekNoRds(meta, discipline){
-  if (discipline !== 'BYGGTEK') return false;
-
-  const objectType = normalizeNoRdsText(meta.objectType);
-
-  return objectType === 'utsparing';
-}
-
-function shouldSkipUtsConflictVolume(meta, discipline){
-  if (discipline !== 'UTS') return false;
-
-  const objectClass = normalizeNoRdsText(meta.objectClass);
-
-  return objectClass === 'konfliktvolum';
-}
-
-function getElementMeta(obj){
-  const elem = getPropAny(obj, '0_Element');
-
-  const objectType =
-    elem['Objekttype'] ||
-    elem['ObjectType'] ||
-    elem['Object Type'] ||
-    elem['objekttype'] ||
-    elem['objecttype'] ||
-    '';
-
-  const objectClass =
-    elem['Objektklasse'] ||
-    elem['ObjectClass'] ||
-    elem['Object Class'] ||
-    elem['objektklasse'] ||
-    elem['objectclass'] ||
-    '';
-
-  const underdiscipline =
-    elem['Underdisiplin'] ||
-    elem['underdisiplin'] ||
-    '';
-
-  const underdisciplineCode =
-    elem['Underdisiplinkode'] ||
-    elem['underdisiplinkode'] ||
-    '';
-
-  return {
-    elem,
-    objectType: norm(objectType),
-    objectClass: norm(objectClass),
-    underdiscipline: norm(underdiscipline),
-    underdisciplineCode: norm(underdisciplineCode)
-  };
-}
-
-function shouldSkipByNotApplicable(meta, discipline){
-  const bothNA =
-    isNotApplicableValue(meta.objectClass) &&
-    isNotApplicableValue(meta.objectType);
-
-  if (!bothNA) return false;
-
-  return true;
-}
-
-function fieldClass(status){
-  if (status === 'ok') return 'ok';
-  if (status === 'na') return 'na';
-  if (status === 'format') return 'warn';
-  return 'miss';
-}
-
-function fieldText(status){
-  if (status === 'ok') return '✓';
-  if (status === 'na') return '–';
-  if (status === 'format') return '!';
-  return '✗';
-}
-
-function getFieldNameByKey(key){
-  const f = FIELDS.find(x => x.key === key);
-  return f ? f.label : key;
-}
-
-function fieldDisplayName(label){
-  return norm(label).replace(/^\d+\.\s*/, '');
-}
-
-function fieldCellText(row, key){
-  const field = row.fields?.[key] || {};
-  const value = norm(field.value);
-
-  if (field.status === 'ok') return value || 'OK';
-  if (field.status === 'na') return 'Ikke påkrevd';
-  if (field.status === 'missing') return 'Mangler verdi';
-  if (field.status === 'format') {
-    return value ? `Ugyldig verdi: ${value}` : 'Ugyldig verdi';
-  }
-  return value || 'Feil';
-}
-
-function getFieldIssueMessage(row, key){
-  const f = FIELDS.find(x => x.key === key);
-  const label = f ? f.label : key;
-  const field = row.fields?.[key] || {};
-  const value = norm(field.value);
-
-  if (field.status === 'ok') return `${label}: OK`;
-  if (field.status === 'na') return `${label}: ikke påkrevd for valgt fagregel`;
-  if (field.status === 'missing') return `${label}: mangler verdi`;
-
-  if (field.status === 'format') {
-    if (key === '01') return explainRdsTagIssue(row.discipline, value, row);
-    if (key === '07') return `${label}: ugyldig Dnn-verdi${value ? ` (${value})` : ''}`;
-    if (key === '08') return `${label}: ugyldig Dnn navn${value ? ` (${value})` : ''}`;
-    if (key === '09') return `${label}: ugyldig EEnnn-verdi${value ? ` (${value})` : ''}`;
-    if (key === '11') return `${label}: ugyldig FFFnnn-verdi${value ? ` (${value})` : ''}`;
-    if (key === '12') return `${label}: ugyldig FFFnnn navn${value ? ` (${value})` : ''}`;
-    if (key === '13') return `${label}: ugyldig GGGnnn-verdi${value ? ` (${value})` : ''}`;
-    if (key === '14') return `${label}: ugyldig GGGnnn navn${value ? ` (${value})` : ''}`;
-    if (key === '15') return `${label}: ugyldig HHHnnnnn-verdi${value ? ` (${value})` : ''}`;
-    if (key === '16') return `${label}: ugyldig HHHnnnnn navn${value ? ` (${value})` : ''}`;
-    return `${label}: ugyldig verdi${value ? ` (${value})` : ''}`;
-  }
-
-  return `${label}: feil`;
-}
-
-function explainRdsTagIssue(discipline, tag, row){
-  if (!tag) return '01. RDS-tag: mangler verdi';
-
-  const clean = norm(tag);
-  if (!clean.startsWith('<E6SØ>-')) {
-    return `01. RDS-tag: feil prefiks. Forventet <E6SØ>-`;
-  }
-
-  const parts = clean.replace(/^<E6SØ>-/, '').split('.');
-
-  if (discipline === 'VEI') {
-    const veiFff = DISCIPLINE_RULES.VEI.regex['11'];
-    const veiGgg = DISCIPLINE_RULES.VEI.regex['13'];
-    const veiEe  = DISCIPLINE_RULES.VEI.regex['09'];
-    const hhh = DISCIPLINE_RULES.VEI.regex['15'];
-
-    if (!ANKER_RX.VEI_TAG.test(clean)) {
-      const knownFff = parts.find(p => veiFff.test(p));
-      const knownGgg = parts.find(p => veiGgg.test(p));
-      const knownEe  = parts.find(p => veiEe.test(p));
-
-      if (!knownEe) return '01. RDS-tag: ugyldig eller manglende EEnnn-verdi. Tillatt: BA1, BA2, CA1, CB1, CK1, JD1';
-      if (!knownFff) return '01. RDS-tag: ugyldig FFFnnn-verdi';
-      if (!knownGgg) return '01. RDS-tag: ugyldig GGGnnn-verdi';
-      if (!hhh.test(parts[parts.length - 1] || '')) return `01. RDS-tag: ugyldig HHHnnnnn-verdi (${parts[parts.length - 1] || 'tom'})`;
-      return '01. RDS-tag: ugyldig VEI-struktur. Kontroller Bnn/Cnn-avhengighet, EEnnn, FFFnnn, GGGnnn og HHHnnnnn';
-    }
-
-    return '01. RDS-tag: OK';
-  }
-
-  if (discipline === 'JBT') return '01. RDS-tag: ugyldig JBT/Jernbaneteknikk-struktur. Forventet <E6SØ>-Bnn.Cnn.K1.JK1.ULR101.GGGnnn.HHHnnnnn';
-  if (discipline === 'MERKING') return '01. RDS-tag: ugyldig MERKING/F-merking-struktur. Forventet <E6SØ>-Bnn.Cnn.ME1.FFFnnn.GGGnnn.HHHnnnnn uten Dnn-ledd';
-  if (discipline === 'TUNNEL') return '01. RDS-tag: ugyldig TUNNEL-struktur. Kontroller Cnn/EEnnn/FFFnnn/GGGnnn/HHHnnnnn. Dnn skal ikke være med.';
-  if (discipline === 'BYGGTEK') return '01. RDS-tag: ugyldig BYGGTEK-struktur eller Dnn/EEnnn-avhengighet';
-  if (discipline === 'KNS') return '01. RDS-tag: ugyldig KNS/BRU-struktur eller Dnn/EEnnn-avhengighet';
-  if (discipline === 'VAA') return '01. RDS-tag: ugyldig VAA-struktur eller FFF/GGG/HHH-verdi';
-  if (discipline === 'UTS') return '01. RDS-tag: ugyldig UTS-struktur eller Dnn/EEnnn-avhengighet. CL1 krever P1, ME2 krever M1.';
-  if (discipline === 'LARK') return '01. RDS-tag: ugyldig LARK-struktur eller Dnn/EEnnn-avhengighet';
-  if (discipline === 'SKO_TUNNEL') return '01. RDS-tag: ugyldig SKO tunnel-struktur';
-  if (discipline === 'SKO') return '01. RDS-tag: ugyldig SKO-struktur';
-
-  return `01. RDS-tag: ugyldig verdi (${clean})`;
-}
-
-function getRowIssueSummary(row){
-  const issueKeys = FIELDS
-    .filter(f => ['missing','format'].includes(row.fields?.[f.key]?.status))
-    .map(f => f.key);
-
-  if (!issueKeys.length) {
-    return { cls: 'ok', text: 'OK' };
-  }
-
-  const first = issueKeys[0];
-  const msg = getFieldIssueMessage(row, first);
-  const extra = issueKeys.length > 1 ? ` + ${issueKeys.length - 1} til` : '';
-  const cls = row.fields?.[first]?.status === 'missing' ? 'miss' : 'warn';
-  return { cls, text: msg + extra };
-}
-
-function scoreClass(pct){
-  if (pct === 100) return 's100';
-  if (pct >= 75) return 's75';
-  if (pct >= 50) return 's50';
-  if (pct >= 25) return 's25';
-  return 's0';
-}
-
-function populateDisciplineDropdown(){
-  disciplineSelect.innerHTML = DISCIPLINE_OPTIONS.map(([value, label]) =>
-    `<option value="${esc(value)}">${esc(label)}</option>`
-  ).join('');
-  disciplineSelect.value = 'AUTO';
-  disciplineSelect.disabled = false;
-}
-
-function getSelectedDiscipline(){
-  return disciplineSelect?.value || 'AUTO';
-}
-
-function resolveDisciplineFromValue(raw){
-  const v = norm(raw).toUpperCase();
-  if (!v) return null;
-  if (DISCIPLINE_RULES[v]) return v;
-  if (v.includes('JERNBANE') || v.includes('JERNBANETEKNIKK') || v === 'JBT' || v.includes('F-JBT')) return 'JBT';
-  if (v.includes('LANDSKAP') || v.includes('LARK')) return 'LARK';
-  if (v.includes('BYGGTEK') || v.includes('BYGG') || v === 'BYG') return 'BYGGTEK';
-  if (v.includes('VANN') || v.includes('AVL') || v === 'VAA' || v.includes('VAA')) return 'VAA';
-  if (v.includes('VEI') || v.includes('VEG')) return 'VEI';
-  if (v.includes('UTSTYR') || v === 'UTS' || v.includes('VEGUTSTYR') || v.includes('VEIUTSTYR')) return 'UTS';
-  if (v.includes('MERKING') || v.includes('F-MERKING') || v.includes('OPPMERKING')) return 'MERKING';
-  if (v.includes('SKILT')) return 'SKO';
-  if (v.includes('TUNNEL')) return 'TUNNEL';
-  if (v.includes('BRU')) return 'KNS';
-  if (v.includes('KONSTR')) return 'KNS';
-  if (DISCIPLINE_RULES[v]) return v;
-  return null;
-}
-
-function inferDisciplineFromNames(modelName=''){
-  const m = modelName.toUpperCase();
-  if (m.includes('JERNBANE') || m.includes('JBT') || m.includes('F-JBT')) return 'JBT';
-  if (m.includes('BYGGTEK') || m.includes('F-BYGGTEK') || m.includes('_BYGG')) return 'BYGGTEK';
-  if (m.includes('LARK')) return 'LARK';
-  if (m.includes('UTSTYR') || m.includes('VEGUTSTYR') || m.includes('VEIUTSTYR') || m.includes('F-UTS') || m.includes('_UTS')) return 'UTS';
-  if (m.includes('MERKING') || m.includes('F-MERKING') || m.includes('OPPMERK')) return 'MERKING';
-  if (m.includes('SKILT')) return 'SKO';
-  if (m.includes('TUNNEL') || m.includes('F-TUNNEL')) return 'TUNNEL';
-  if (m.includes('BRU') || m.includes('KONSTR') || m.includes('_K_')) return 'KNS';
-  if (m.includes('VAA') || m.includes('VAA_') || m.includes('VA ')) return 'VAA';
-  if (m.includes('VEG') || m.includes('VEI') || m.includes('_V_')) return 'VEI';
-  return null;
-}
-
-function resolveDiscipline(obj, modelName=''){
-  const forced = getSelectedDiscipline();
-  if (forced && forced !== 'AUTO') return forced;
-
-  const meta = getElementMeta(obj);
-  const combined = [
-    meta.underdiscipline,
-    meta.underdisciplineCode,
-    meta.objectType,
-    meta.objectClass,
-    modelName
-  ].map(v => norm(v).toUpperCase()).join(' | ');
-
-  if ((combined.includes('SKILT') || combined.includes('SKO')) && combined.includes('TUNNEL')) {
-    return 'SKO_TUNNEL';
-  }
-
-  return (
-    resolveDisciplineFromValue(meta.underdisciplineCode) ||
-    resolveDisciplineFromValue(meta.underdiscipline) ||
-    resolveDisciplineFromValue(meta.objectType) ||
-    resolveDisciplineFromValue(meta.objectClass) ||
-    inferDisciplineFromNames(modelName) ||
-    'VEI'
-  );
-}
-
-function validateKnsRdsTagDependency(tag){
-  if (!tag || !KNS_BRU_RDS_REGEX.test(tag)) return false;
-
-  const parts = norm(tag).replace(/^<E6SØ>-/, '').split('.');
-  const startIndex = parts[0] === 'D1' ? 2 : 1;
-  const maybeDnnOrEe = parts[startIndex];
-  const maybeEe = parts[startIndex + 1];
-
-  if (KNS_NO_DNN_EE.has(maybeDnnOrEe)) return true;
-  if (maybeDnnOrEe === 'K1' && (maybeEe === 'PC1' || maybeEe === 'JK1')) return true;
-  if (maybeDnnOrEe === 'P1' && maybeEe === 'CL1') return true;
-
-  return false;
-}
-
-function validateByRule(obj, modelName){
-  const discipline = resolveDiscipline(obj, modelName);
-  const rules = DISCIPLINE_RULES[discipline];
-  const rds = getPropAny(obj, PSET);
-  const fields = {};
-  let reqOk = 0, reqTotal = 0, missingCount = 0, formatErrorCount = 0, naCount = 0;
-
-  const ee = norm(rds['09. EEnnn'] || getProp(obj, PSET, '09. EEnnn')).toUpperCase();
-  const dnn = norm(rds['07. Dnn'] || getProp(obj, PSET, '07. Dnn')).toUpperCase();
-  const larkNoD = discipline === 'LARK' && ['BA1','CJ1','RA1'].includes(ee);
-  const larkP1  = discipline === 'LARK' && ee === 'CL1';
-
-  const skoNoD = false; 
-  const skoTunnelNoD = discipline === 'SKO_TUNNEL' && ee === 'BB1';
-
-  for (const f of FIELDS) {
-    const key = f.key;
-    const value = norm(rds[f.label] || getProp(obj, PSET, f.label));
-
-    if (key === '07' || key === '08') {
-      if (discipline === 'TUNNEL') {
-        if (!value) {
-          fields[key] = { status: 'na', value };
-          naCount++;
-        } else {
-          fields[key] = { status: 'format', value };
-          formatErrorCount++;
-        }
-        continue;
-      }
-
-      if (discipline === 'BYGGTEK' && BYGGTEK_NO_DNN_EE.has(ee)) {
-        if (!value) {
-          fields[key] = { status: 'na', value };
-          naCount++;
-        } else {
-          fields[key] = { status: 'format', value };
-          formatErrorCount++;
-        }
-        continue;
-      }
-
-      if (discipline === 'BYGGTEK' && BYGGTEK_REQUIRED_DNN_BY_EE[ee]) {
-        const expected = key === '07'
-          ? BYGGTEK_REQUIRED_DNN_BY_EE[ee].dnn
-          : BYGGTEK_REQUIRED_DNN_BY_EE[ee].dnnName;
-
-        reqTotal++;
-        if (!value) {
-          fields[key] = { status: 'missing', value };
-          missingCount++;
-        } else if (value !== expected) {
-          fields[key] = { status: 'format', value };
-          formatErrorCount++;
-        } else {
-          fields[key] = { status: 'ok', value };
-          reqOk++;
-        }
-        continue;
-      }
-
-      if (discipline === 'KNS' && KNS_NO_DNN_EE.has(ee)) {
-        if (!value) {
-          fields[key] = { status: 'na', value };
-          naCount++;
-        } else {
-          fields[key] = { status: 'format', value };
-          formatErrorCount++;
-        }
-        continue;
-      }
-
-      if (discipline === 'KNS' && KNS_REQUIRED_DNN_BY_EE[ee]) {
-        const expected = key === '07'
-          ? KNS_REQUIRED_DNN_BY_EE[ee].dnn
-          : KNS_REQUIRED_DNN_BY_EE[ee].dnnName;
-
-        reqTotal++;
-        if (!value) {
-          fields[key] = { status: 'missing', value };
-          missingCount++;
-        } else if (value !== expected) {
-          fields[key] = { status: 'format', value };
-          formatErrorCount++;
-        } else {
-          fields[key] = { status: 'ok', value };
-          reqOk++;
-        }
-        continue;
-      }
-
-      if (discipline === 'UTS' && UTS_REQUIRED_DNN_BY_EE[ee]) {
-        const expected = key === '07'
-          ? UTS_REQUIRED_DNN_BY_EE[ee].dnn
-          : UTS_REQUIRED_DNN_BY_EE[ee].dnnName;
-
-        reqTotal++;
-        if (!value) {
-          fields[key] = { status: 'missing', value };
-          missingCount++;
-        } else if (value !== expected) {
-          fields[key] = { status: 'format', value };
-          formatErrorCount++;
-        } else {
-          fields[key] = { status: 'ok', value };
-          reqOk++;
-        }
-        continue;
-      }
-
-      if (discipline === 'SKO' && ee === 'ME2') {
-        const rx = key === '07' ? SKO_DNN_REGEX : SKO_DNN_NAME_REGEX;
-
-        reqTotal++;
-        if (!value) {
-          fields[key] = { status: 'missing', value };
-          missingCount++;
-        } else if (!rx.test(value)) {
-          fields[key] = { status: 'format', value };
-          formatErrorCount++;
-        } else {
-          fields[key] = { status: 'ok', value };
-          reqOk++;
-        }
-        continue;
-      }
-
-      if (skoNoD || skoTunnelNoD || larkNoD) {
-        if (!value) {
-          fields[key] = { status: 'na', value };
-          naCount++;
-        } else {
-          fields[key] = { status: 'format', value };
-          formatErrorCount++;
-        }
-        continue;
-      }
-
-      if (larkP1 && key === '07') {
-        reqTotal++;
-        if (!value) {
-          fields[key] = { status: 'missing', value };
-          missingCount++;
-        } else if (value !== 'P1') {
-          fields[key] = { status: 'format', value };
-          formatErrorCount++;
-        } else {
-          fields[key] = { status: 'ok', value };
-          reqOk++;
-        }
-        continue;
-      }
-
-      if (larkP1 && key === '08') {
-        reqTotal++;
-        if (!value) {
-          fields[key] = { status: 'missing', value };
-          missingCount++;
-        } else {
-          fields[key] = { status: 'ok', value };
-          reqOk++;
-        }
-        continue;
-      }
-    }
-
-    if (discipline === 'KNS' && key === '01') {
-      reqTotal++;
-      if (!value) {
-        fields[key] = { status: 'missing', value };
-        missingCount++;
-      } else if (!validateKnsRdsTagDependency(value)) {
-        fields[key] = { status: 'format', value };
-        formatErrorCount++;
-      } else {
-        fields[key] = { status: 'ok', value };
-        reqOk++;
-      }
-      continue;
-    }
-
-    const isRequired = rules.required.includes(key);
-    const isOptional = rules.optional.includes(key);
-    const rx = rules.regex[key];
-
-    if (!isRequired && isOptional && !value) {
-      fields[key] = { status: 'na', value };
-      naCount++;
-      continue;
-    }
-
-    if (isRequired) reqTotal++;
-
-    if (!value) {
-      if (isRequired) {
-        fields[key] = { status: 'missing', value };
-        missingCount++;
-      } else {
-        fields[key] = { status: 'na', value };
-        naCount++;
-      }
-      continue;
-    }
-
-    if (rx && !rx.test(value)) {
-      fields[key] = { status: 'format', value };
-      if (isRequired) formatErrorCount++;
-      continue;
-    }
-
-    fields[key] = { status: 'ok', value };
-    if (isRequired) reqOk++;
-  }
-
-  const score = reqTotal ? Math.round((reqOk / reqTotal) * 100) : 100;
-  return { discipline, fields, score, missingCount, formatErrorCount, naCount };
-}
-
-async function connect(){
+// 1. Koble til Trimble Connect (Nøyaktig som i deres mal)
+async function connect() {
   try {
     if (!window.TrimbleConnectWorkspace?.connect) {
       throw new Error('Trimble Connect Workspace API ikke tilgjengelig');
@@ -1595,7 +322,7 @@ async function connect(){
     setStatus('⏳ Kobler til Trimble Connect…');
 
     const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Tilkobling mot Trimble Connect tok for lang tid. Prøv å laste extension på nytt.')), 15000)
+      setTimeout(() => reject(new Error('Tilkobling mot Trimble Connect tok for lang tid.')), 15000)
     );
 
     API = await Promise.race([
@@ -1603,8 +330,11 @@ async function connect(){
       timeout
     ]);
 
-    btnLoad.disabled = false;
-    setStatus('✅ Tilkoblet Trimble Connect. Trykk «Hent modeller».', 'ok');
+    // Håndter forskjeller i API-versjoner for sikkerhets skyld
+    workspace = API.ui ? API.ui.workspace : API.viewer;
+
+    btnStart.disabled = false;
+    setStatus('✅ Tilkoblet Trimble Connect. Klar til å utføre siktkontroll.', 'ok');
     modelBadge.textContent = 'Tilkoblet';
   } catch (e) {
     setStatus('❌ ' + (e.message || e), 'error');
@@ -1613,638 +343,131 @@ async function connect(){
   }
 }
 
-async function loadModels(){
-  if (!API) return;
-  btnLoad.disabled = true;
-  setStatus('⏳ Leser modeller…');
-  try {
-    const nameMap = new Map();
-    const srcs = [
-      () => API.models?.getModels?.(),
-      () => API.viewer?.getModels?.(),
-      () => API.project?.getModels?.()
-    ];
-
-    for (const src of srcs) {
-      try {
-        const res = await src();
-        if (!res) continue;
-        const list = Array.isArray(res) ? res : (res.models || res.items || []);
-        for (const m of list) {
-          const id = norm(m.id || m.modelId || '');
-          if (!id) continue;
-          const fn = [m.name, m.fileName, m.filename].map(norm).find(v => /\.ifc/i.test(v));
-          if (fn) nameMap.set(id, lastPathPart(fn));
-        }
-        if (nameMap.size) break;
-      } catch {}
-    }
-
-    const objs = await API.viewer.getObjects();
-    allModels = (objs || []).map((m, i) => {
-      const modelId = norm(m.modelId || m.modelid || m['model Id'] || '');
-      if (!modelId) return null;
-      const cnt = Array.isArray(m.objects) ? m.objects.length : 0;
-      const name = nameMap.get(modelId) || getModelName(m, i);
-      return { modelId, name, objectCount: cnt };
-    }).filter(Boolean);
-
-    modelSelect.innerHTML = '<option value="">– velg modell –</option>' +
-      allModels.map(m => `<option value="${esc(m.modelId)}">${esc(m.name)} (${m.objectCount} obj.)</option>`).join('');
-
-    modelSelect.disabled = false;
-    btnLoad.disabled = false;
-    setStatus(`✅ ${allModels.length} modeller hentet. Velg modell og valider.`, 'ok');
-  } catch (e) {
-    setStatus('❌ Feil ved henting: ' + (e.message || e), 'error');
-    btnLoad.disabled = false;
-    console.error(e);
-  }
-}
-
-async function validate(){
-  const modelId = modelSelect.value;
-  if (!modelId) {
-    setStatus('⚠️ Velg en modell først.');
-    return;
-  }
-
-  const modelEntry = allModels.find(m => m.modelId === modelId);
-  currentModelName = modelEntry?.name || '';
-
-  btnValidate.disabled = true;
-  btnReset.disabled = true;
-  setStatus('⏳ Leser objekter og validerer RDS-felter…');
-  mainContent.innerHTML = '';
-
-  skippedStats = {
-  notApplicable: 0,
-  ignoredIfc: 0,
-  missing0Element: 0,
-  knsNoRds: 0,
-  byggtekNoRds: 0,
-  utsConflictVolume: 0
-};
+// 2. Utfør siktkontroll
+btnStart.addEventListener('click', async () => {
+  btnStart.disabled = true;
+  resultCards.style.display = 'grid';
 
   try {
-    const objsInfo = await API.viewer.getObjects();
-    const raw = (objsInfo || []).find(m => norm(m.modelId || m.modelid || m['model Id'] || '') === modelId);
-
-    if (!raw || !Array.isArray(raw.objects) || !raw.objects.length) {
-      setStatus('⚠️ Ingen objekter funnet i valgt modell.', 'error');
-      btnValidate.disabled = false;
+    // Steg 1: Plukk startpunkt
+    setStatus('📍 Klikk i 3D-modellen for å sette STARTPUNKT (Observatør)...', 'warn');
+    const pickA = await workspace.pickPosition();
+    if (!pickA) {
+      setStatus('⚠️ Siktkontroll avbrutt (ingen startpunkt valgt).', '');
+      btnStart.disabled = false;
       return;
     }
 
-    const runtimeIds = raw.objects.map(o => o.id).filter(v => v != null);
-    const total = runtimeIds.length;
-    let done = 0;
-    const CHUNK = 200;
-    validationRows = [];
-
-    for (let i = 0; i < runtimeIds.length; i += CHUNK) {
-      const chunk = runtimeIds.slice(i, i + CHUNK);
-      const props = await API.viewer.getObjectProperties(modelId, chunk);
-
-      const candidates = [];
-
-      for (const obj of (props || [])) {
-        const ifcType = getIfcType(obj);
-        if (IGNORE.has(ifcType)) {
-          skippedStats.ignoredIfc++;
-          continue;
-        }
-
-        const meta = getElementMeta(obj);
-
-        if (!Object.keys(meta.elem).length) {
-          skippedStats.missing0Element++;
-          continue;
-        }
-
-        const discipline = resolveDiscipline(obj, currentModelName);
-
-        if (shouldSkipByNotApplicable(meta, discipline)) {
-          skippedStats.notApplicable++;
-          continue;
-        }
-
-        if (shouldSkipKnsNoRds(meta, discipline)) {
-          skippedStats.knsNoRds++;
-          continue;
-        }
-
-        if (shouldSkipByggtekNoRds(meta, discipline)) {
-          skippedStats.byggtekNoRds++;
-          continue;
-        }
-
-        if (shouldSkipUtsConflictVolume(meta, discipline)) {
-          skippedStats.utsConflictVolume++;
-          continue;
-        }
-
-        const ruleResult = validateByRule(obj, currentModelName);
-
-        candidates.push({
-          obj,
-          meta,
-          ruleResult
-        });
-      }
-
-      let guidMap = new Map();
-      try {
-        const candidateRuntimeIds = candidates
-          .map(c => Number(c.obj.id))
-          .filter(v => Number.isFinite(v));
-
-        if (candidateRuntimeIds.length) {
-          const converted = await API.viewer.convertToObjectIds(modelId, candidateRuntimeIds);
-          candidateRuntimeIds.forEach((rid, idx) => {
-            guidMap.set(String(rid), converted?.[idx] ? String(converted[idx]) : '');
-          });
-        }
-      } catch (e) {
-        console.warn('GUID-konvertering feilet for chunk:', e);
-      }
-
-      for (const c of candidates) {
-        const obj = c.obj;
-        const meta = c.meta;
-        const ruleResult = c.ruleResult;
-
-        const guid = guidMap.get(String(obj.id)) || '';
-        const rdsTag = norm(getProp(obj, PSET, '01. RDS-tag'));
-
-        validationRows.push({
-          name: norm(obj.name || obj.objectName || ''),
-          guid,
-          modelId,
-          runtimeId: obj.id,
-          fields: ruleResult.fields,
-          score: ruleResult.score,
-          missingCount: ruleResult.missingCount,
-          formatErrorCount: ruleResult.formatErrorCount,
-          naCount: ruleResult.naCount,
-          discipline: ruleResult.discipline,
-          elementType: meta.objectType,
-          objectClass: meta.objectClass,
-          rdsTag
-        });
-      }
-
-      done += chunk.length;
-      setStatus(`⏳ Validerer… ${Math.min(done, total)} / ${total} objekter`);
+    // Steg 2: Plukk sluttpunkt
+    setStatus('📍 Klikk i 3D-modellen for å sette SLUTTPUNKT (Mål/Skilt)...', 'warn');
+    const pickB = await workspace.pickPosition();
+    if (!pickB) {
+      setStatus('⚠️ Siktkontroll avbrutt (ingen sluttpunkt valgt).', '');
+      btnStart.disabled = false;
+      return;
     }
 
-    renderDashboard(modelEntry);
-    btnReset.disabled = false;
-    btnColorize.disabled = false;
-    btnExport.disabled = false;
+    setStatus('⏳ Beregner siktlinje og ser etter hindringer...', 'warn');
 
-    setStatus(
-      `✅ Validering fullført — ${validationRows.length} objekter analysert · ${skippedStats.notApplicable} hoppet over (NotApplicable) · ${skippedStats.knsNoRds} hoppet over (KNS uten RDS-krav) · ${skippedStats.byggtekNoRds} hoppet over (BYGGTEK Luke/Utsparing).`,
-      'ok'
-    );
-  } catch (e) {
-    setStatus('❌ Feil under validering: ' + (e.message || e), 'error');
-    console.error(e);
+    // Hent inputverdier
+    const eyeOffset = parseFloat($('eyeHeight').value) || 0;
+    const objOffset = parseFloat($('objHeight').value) || 0;
+
+    // Juster høyder
+    const start = { x: pickA.x, y: pickA.y, z: pickA.z + eyeOffset };
+    const end = { x: pickB.x, y: pickB.y, z: pickB.z + objOffset };
+
+    // Beregn vektor og avstand
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const dz = end.z - start.z;
+    const totalDist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    const direction = { x: dx/totalDist, y: dy/totalDist, z: dz/totalDist };
+
+    // Kjør kollisjonssjekk
+    const hit = await workspace.raycast({ origin: start, direction: direction, maxDistance: totalDist });
+    
+    // Trekk fra en liten margin (10cm) for å unngå falske treff helt inntil målepunktet
+    const isBlocked = hit && hit.distance < (totalDist - 0.1);
+
+    // Visualisering i 3D
+    await workspace.addGraphicPrimitives([{
+      type: 'line',
+      start: start,
+      end: isBlocked ? hit.position : end,
+      color: isBlocked ? {r:255,g:0,b:0,a:1} : {r:0,g:255,b:0,a:1},
+      width: 5
+    }]);
+
+    // Oppdater UI (Kort)
+    updateCards(totalDist, hit, isBlocked);
+    
+    // Oppdater UI (Logg-tabell)
+    addToLog(totalDist, hit, isBlocked, eyeOffset, objOffset);
+
+    // Ferdig
+    setStatus(isBlocked ? '❌ Siktlinjen er blokkert!' : '✅ Fri sikt langs linjen!', isBlocked ? 'error' : 'ok');
+
+  } catch (err) {
+    setStatus('❌ Feil under beregning: ' + err.message, 'error');
+    console.error(err);
   }
 
-  btnValidate.disabled = false;
-}
-
-function renderDashboard(model){
-  const total = validationRows.length;
-  if (!total) {
-    mainContent.innerHTML = `
-      <div class="empty">
-        <div class="icon">⚠️</div>
-        <div>
-          Ingen relevante objekter funnet.<br>
-          <span style="font-size:11px;color:var(--muted)">
-            Hoppet over ${skippedStats.notApplicable} objekt(er) med NotApplicable, ${skippedStats.knsNoRds} KNS/Bru-objekt(er) uten RDS-krav ${skippedStats.byggtekNoRds} BYGGTEK Luke/Utsparing-objekt(er) og ${skippedStats.utsConflictVolume} UTS Konfliktvolum-objekt(er).
-          </span>
-        </div>
-      </div>`;
-    return;
-  }
-
-  const perfect = validationRows.filter(r => r.missingCount === 0 && r.formatErrorCount === 0).length;
-  const issues = validationRows.filter(r => r.missingCount > 0 || r.formatErrorCount > 0).length;
-  const totalMissing = validationRows.reduce((s, r) => s + r.missingCount, 0);
-  const totalFormat = validationRows.reduce((s, r) => s + r.formatErrorCount, 0);
-  const requiredChecks = validationRows.reduce((sum, r) => sum + Object.values(r.fields).filter(f => f.status !== 'na').length, 0);
-  const totalOk = validationRows.reduce((sum, r) => sum + Object.values(r.fields).filter(f => f.status === 'ok').length, 0);
-  const fillPct = requiredChecks ? Math.round((totalOk / requiredChecks) * 100) : 100;
-
-  const fieldStats = FIELDS.map(f => {
-    let ok = 0, miss = 0, format = 0, na = 0;
-    for (const r of validationRows) {
-      const st = r.fields[f.key]?.status;
-      if (st === 'ok') ok++;
-      else if (st === 'missing') miss++;
-      else if (st === 'format') format++;
-      else na++;
-    }
-    const applicable = total - na;
-    return { ...f, ok, miss, format, na, applicable };
-  });
-
-  const countsByDiscipline = {};
-  for (const r of validationRows) countsByDiscipline[r.discipline] = (countsByDiscipline[r.discipline] || 0) + 1;
-  const disciplineText = Object.entries(countsByDiscipline).map(([k, v]) => `${k}:${v}`).join(' · ');
-
-  const selectedRuleLabel =
-    disciplineSelect.value === 'AUTO'
-      ? disciplineText
-      : `${disciplineSelect.value} – ${DISCIPLINE_RULES[disciplineSelect.value]?.label || ''}`;
-
-  mainContent.innerHTML = `
-    <div class="cards anim">
-      <div class="card blue">
-        <div class="label">Analysert</div>
-        <div class="value">${total}</div>
-        <div class="sub">${esc(model?.name || '')}</div>
-      </div>
-      <div class="card green">
-        <div class="label">OK</div>
-        <div class="value">${perfect}</div>
-        <div class="sub">uten mangler og formatfeil</div>
-      </div>
-      <div class="card red">
-        <div class="label">Avvik</div>
-        <div class="value">${issues}</div>
-        <div class="sub">${totalMissing} mangler · ${totalFormat} formatfeil</div>
-      </div>
-      <div class="card yellow">
-        <div class="label">Hoppet over</div>
-        <div class="value">${skippedStats.notApplicable + skippedStats.knsNoRds + skippedStats.byggtekNoRds + skippedStats.utsConflictVolume}</div>
-        <div class="sub">NotApplicable: ${skippedStats.notApplicable} · KNS uten RDS: ${skippedStats.knsNoRds} · BYGGTEK Luke/Utsparing: ${skippedStats.byggtekNoRds} · UTS Konfliktvolum: ${skippedStats.utsConflictVolume}</div>
-      </div>
-    </div>
-
-    <div class="grid-2col anim" style="animation-delay:.05s">
-      <div class="panel">
-        <div class="panel-header">
-          <h3>Overordnet status</h3>
-          <span class="hint">grønn = ok · gul = formatfeil · rød = mangler</span>
-        </div>
-        <div id="donutWrap">
-          <svg id="donutSvg" width="120" height="120" viewBox="0 0 120 120"></svg>
-          <div class="donut-legend" id="donutLegend"></div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <h3>Feltdekning</h3>
-          <span class="hint">grå = ikke påkrevd</span>
-        </div>
-        <div id="fieldChart"></div>
-      </div>
-    </div>
-
-    <div class="panel anim" style="animation-delay:.1s">
-      <div class="panel-header">
-        <h3>Objektliste</h3>
-        <div class="tabs" id="filterTabs">
-          <button class="tab active" data-filter="all">Alle (${total})</button>
-          <button class="tab" data-filter="ok">✅ OK (${perfect})</button>
-          <button class="tab" data-filter="issues">⚠️ Avvik (${issues})</button>
-        </div>
-        <input id="searchInput" type="text" placeholder="Søk navn / GUID…" style="margin-left:8px"/>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Score</th>
-              <th>Feil / årsak</th>
-              <th>Navn</th>
-              <th>GUID</th>
-              <th>Fag</th>
-              <th>Objekttype</th>
-              <th>Objektklasse</th>
-              <th>Disiplin</th>
-              ${FIELDS.map(f => `<th class="field-col-head" title="${esc(f.label)}">${esc(f.label)}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody id="tableBody"></tbody>
-        </table>
-      </div>
-    </div>
-  `;
-
-  renderDonut(total);
-  renderFieldBars(fieldStats);
-  renderTable();
-
-  document.getElementById('filterTabs').addEventListener('click', e => {
-    const btn = e.target.closest('.tab');
-    if (!btn) return;
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-    activeFilter = btn.dataset.filter;
-    renderTable();
-  });
-
-  document.getElementById('searchInput').addEventListener('input', e => {
-    searchTerm = e.target.value.toLowerCase();
-    renderTable();
-  });
-}
-
-function renderDonut(total){
-  const ok = validationRows.filter(r => r.missingCount === 0 && r.formatErrorCount === 0).length;
-  const format = validationRows.filter(r => r.missingCount === 0 && r.formatErrorCount > 0).length;
-  const missing = validationRows.filter(r => r.missingCount > 0).length;
-
-  const slices = [
-    { label: 'OK', count: ok, color: '#3fb950' },
-    { label: 'Formatfeil', count: format, color: '#d29922' },
-    { label: 'Manglende felter', count: missing, color: '#f85149' }
-  ];
-
-  const svg = document.getElementById('donutSvg');
-  const legend = document.getElementById('donutLegend');
-  const cx = 60, cy = 60, r = 48, ir = 30;
-  const circumference = 2 * Math.PI * r;
-  let offset = 0;
-  let paths = '';
-
-  for (const s of slices) {
-    const frac = total > 0 ? s.count / total : 0;
-    const dashLen = frac * circumference;
-    const gap = circumference - dashLen;
-    paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="18" stroke-dasharray="${dashLen.toFixed(2)} ${gap.toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}"></circle>`;
-    offset += dashLen;
-  }
-
-  const pct = total > 0 ? Math.round((ok / total) * 100) : 0;
-  svg.innerHTML = paths + `
-    <circle cx="${cx}" cy="${cy}" r="${ir}" fill="var(--surface)"></circle>
-    <text x="${cx}" y="${cy - 4}" text-anchor="middle" font-family="Syne,sans-serif" font-size="18" font-weight="800" fill="var(--ink)">${pct}%</text>
-    <text x="${cx}" y="${cy + 12}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="var(--muted)">OK</text>
-  `;
-
-  legend.innerHTML = slices.map(s => `
-    <div class="legend-item">
-      <div class="legend-dot" style="background:${s.color}"></div>
-      <span class="legend-text">${esc(s.label)}</span>
-      <span class="legend-val">${s.count}</span>
-    </div>
-  `).join('');
-}
-
-function renderFieldBars(fieldStats){
-  const chart = document.getElementById('fieldChart');
-  chart.innerHTML = fieldStats.map(f => {
-    const okPct = f.applicable ? Math.round((f.ok / f.applicable) * 100) : 0;
-    const missPct = f.applicable ? Math.round((f.miss / f.applicable) * 100) : 0;
-    return `
-      <div class="field-row">
-        <div class="field-name" title="${esc(f.label)}">${esc(f.label)}</div>
-        <div class="bar-track">
-          <div class="bar-fill-ok" style="width:${okPct}%"></div>
-          <div class="bar-fill-miss" style="width:${missPct}%"></div>
-        </div>
-        <div class="bar-pct">${f.ok}/${f.applicable || 0}</div>
-        <div class="bar-count">NA:${f.na}</div>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderTable(){
-  let rows = validationRows.slice();
-  if (activeFilter === 'ok') rows = rows.filter(r => r.missingCount === 0 && r.formatErrorCount === 0);
-  if (activeFilter === 'issues') rows = rows.filter(r => r.missingCount > 0 || r.formatErrorCount > 0);
-  if (searchTerm) {
-    rows = rows.filter(r =>
-      r.name.toLowerCase().includes(searchTerm) ||
-      r.guid.toLowerCase().includes(searchTerm)
-    );
-  }
-
-  const tbody = document.getElementById('tableBody');
-  if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="${8 + FIELDS.length}" class="empty" style="padding:20px;text-align:center;color:var(--muted)">Ingen rader matcher filteret.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = rows.map(r => {
-    const sc = scoreClass(r.score);
-    const issue = getRowIssueSummary(r);
-    const cells = FIELDS.map(f => {
-      const st = r.fields[f.key]?.status || 'missing';
-      const val = esc(r.fields[f.key]?.value || '');
-      const msg = esc(getFieldIssueMessage(r, f.key));
-      const cellText = esc(fieldCellText(r, f.key));
-      const cls = fieldClass(st);
-      return `<td title="${msg}\nVerdi: ${val || '–'}"><span class="field-value ${cls}">${cellText}</span></td>`;
-    }).join('');
-
-    return `
-      <tr data-mid="${esc(r.modelId)}" data-rid="${esc(r.runtimeId)}" title="${esc(issue.text)}">
-        <td><span class="score ${sc}">${r.score}%</span></td>
-        <td class="issue-cell"><span class="issue-pill ${issue.cls}" title="${esc(issue.text)}">${esc(issue.text)}</span></td>
-        <td class="obj-name" title="${esc(r.name)}">${esc(r.name) || '<span style="color:var(--muted)">–</span>'}</td>
-        <td class="guid" title="${esc(r.guid)}" onclick="copyGuid(event, this, '${esc(r.guid)}')">${r.guid ? esc(r.guid.substring(0,12) + '…') : '–'}</td>
-        <td style="color:var(--muted)">${esc(r.discipline)}</td>
-        <td style="color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.elementType)}">${esc(r.elementType) || '–'}</td>
-        <td style="color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.objectClass)}">${esc(r.objectClass) || '–'}</td>
-        <td style="color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.discipline)}">${esc(r.discipline) || '–'}</td>
-        ${cells}
-      </tr>
-    `;
-  }).join('');
-
-  tbody.querySelectorAll('tr[data-rid]').forEach(tr => {
-    tr.addEventListener('click', async e => {
-      if (e.target.classList.contains('guid')) return;
-      const mid = tr.dataset.mid;
-      const rid = parseInt(tr.dataset.rid, 10);
-
-      try {
-        await API.viewer.setSelection({ modelObjectIds:[{ modelId:mid, objectRuntimeIds:[rid] }] }, 'set');
-      } catch {}
-
-      try {
-        await API.viewer.setCamera({ modelObjectIds:[{ modelId:mid, objectRuntimeIds:[rid] }] }, { animationTime:500 });
-      } catch {}
-    });
-  });
-}
-
-window.copyGuid = function(ev, el, guid){
-  ev.stopPropagation();
-  navigator.clipboard?.writeText(guid).catch(() => {});
-  const orig = el.textContent;
-  el.textContent = 'Kopiert!';
-  setTimeout(() => { el.textContent = orig; }, 1200);
-};
-
-async function colorizeModel(){
-  if (!API || !validationRows.length) return;
-  btnColorize.disabled = true;
-  setStatus('🎨 Fargelegger modell…');
-
-  try {
-    await API.viewer.setObjectState(undefined, { color: 'reset' });
-
-    const greenMap = new Map();
-    const yellowMap = new Map();
-    const redMap = new Map();
-
-    for (const row of validationRows) {
-      const mid = row.modelId;
-      const rid = Number(row.runtimeId);
-
-      const addTo = map => {
-        if (!map.has(mid)) map.set(mid, []);
-        map.get(mid).push(rid);
-      };
-
-      if (row.missingCount > 0) addTo(redMap);
-      else if (row.formatErrorCount > 0) addTo(yellowMap);
-      else addTo(greenMap);
-    }
-
-    const toSel = map => Array.from(map.entries()).map(([modelId, objectRuntimeIds]) => ({ modelId, objectRuntimeIds }));
-
-    const gSel = toSel(greenMap);
-    const ySel = toSel(yellowMap);
-    const rSel = toSel(redMap);
-
-    if (gSel.length) await API.viewer.setObjectState({ modelObjectIds: gSel }, { color: { r: 39,  g: 174, b: 96,  a: 255 } });
-    if (ySel.length) await API.viewer.setObjectState({ modelObjectIds: ySel }, { color: { r: 210, g: 153, b: 34,  a: 255 } });
-    if (rSel.length) await API.viewer.setObjectState({ modelObjectIds: rSel }, { color: { r: 248, g: 81,  b: 73,  a: 255 } });
-
-    const gc = [...greenMap.values()].reduce((s, a) => s + a.length, 0);
-    const yc = [...yellowMap.values()].reduce((s, a) => s + a.length, 0);
-    const rc = [...redMap.values()].reduce((s, a) => s + a.length, 0);
-
-    btnUncolor.disabled = false;
-    btnColorize.disabled = false;
-    setStatus(`🎨 Fargelagt: 🟢 ${gc} OK · 🟡 ${yc} formatfeil · 🔴 ${rc} mangler`, 'ok');
-  } catch (e) {
-    setStatus('❌ Feil ved fargelegging: ' + (e.message || e), 'error');
-    btnColorize.disabled = false;
-    console.error(e);
-  }
-}
-
-async function removeColors(){
-  if (!API) return;
-  try {
-    await API.viewer.setObjectState(undefined, { color: 'reset' });
-    btnUncolor.disabled = true;
-    setStatus('⬜ Modellfarger fjernet.', '');
-  } catch (e) {
-    setStatus('❌ Feil ved fjerning av farger: ' + (e.message || e), 'error');
-    console.error(e);
-  }
-}
-
-function exportCsv(){
-  const issueRows = validationRows.filter(r => r.missingCount > 0 || r.formatErrorCount > 0);
-  if (!issueRows.length) {
-    setStatus('✅ Ingen avvik — ingenting å eksportere.', 'ok');
-    return;
-  }
-
-  const headers = ['Navn','GUID','Fag','Objekttype','Objektklasse','Score (%)','Feil / årsak','Manglende felter','Formatfeil',...FIELDS.map(f => f.label),...FIELDS.map(f => f.label + ' - feilmelding')];
-  const csvEsc = v => {
-    const s = (v ?? '').toString().replace(/"/g, '""');
-    return /[",\n]/.test(s) ? `"${s}"` : s;
-  };
-
-  const lines = [headers.map(csvEsc).join(',')];
-  for (const r of issueRows) {
-    lines.push([
-      csvEsc(r.name),
-      csvEsc(r.guid),
-      csvEsc(r.discipline),
-      csvEsc(r.elementType),
-      csvEsc(r.objectClass),
-      csvEsc(r.score),
-      csvEsc(getRowIssueSummary(r).text),
-      csvEsc(r.missingCount),
-      csvEsc(r.formatErrorCount),
-      ...FIELDS.map(f => {
-        const st = r.fields[f.key]?.status || '';
-        if (st === 'ok') return csvEsc('OK');
-        if (st === 'na') return csvEsc('IKKE PÅKREVD');
-        if (st === 'format') return csvEsc('FORMATFEIL');
-        return csvEsc('MANGLER');
-      }),
-      ...FIELDS.map(f => csvEsc(getFieldIssueMessage(r, f.key)))
-    ].join(','));
-  }
-
-  const bom = '\ufeff';
-  const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'RDS_avvik_' + new Date().toISOString().slice(0,10) + '.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(a.href);
-
-  setStatus(`⬇ Eksportert ${issueRows.length} objekter med avvik til CSV.`, 'ok');
-}
-
-function reset(){
-  validationRows = [];
-  activeFilter = 'all';
-  searchTerm = '';
-  skippedStats = {
-  notApplicable: 0,
-  ignoredIfc: 0,
-  missing0Element: 0,
-  knsNoRds: 0,
-  byggtekNoRds: 0,
-  utsConflictVolume: 0
-};
-
-  if (API) {
-    try { API.viewer.setObjectState(undefined, { color: 'reset' }); } catch {}
-  }
-
-  mainContent.innerHTML = `
-    <div class="empty anim">
-      <div class="icon">🔍</div>
-      <div>
-        Velg en modell og trykk <strong>Valider</strong> for å starte.<br>
-        <span style="font-size:11px;color:var(--muted)">
-          Fagregler kan settes til Auto eller overstyres manuelt. Elementer med NotApplicable filtreres bort.
-        </span>
-      </div>
-    </div>`;
-  btnReset.disabled = true;
-  btnColorize.disabled = true;
-  btnUncolor.disabled = true;
-  btnExport.disabled = true;
-  setStatus('↺ Nullstilt.', '');
-}
-
-btnLoad.addEventListener('click', loadModels);
-btnValidate.addEventListener('click', validate);
-btnColorize.addEventListener('click', colorizeModel);
-btnUncolor.addEventListener('click', removeColors);
-btnExport.addEventListener('click', exportCsv);
-btnReset.addEventListener('click', reset);
-modelSelect.addEventListener('change', () => { btnValidate.disabled = !modelSelect.value; });
-
-window.addEventListener('error', e => {
-  setStatus('❌ JS-feil: ' + e.message, 'error');
-  console.error(e.error || e.message);
+  btnStart.disabled = false;
 });
 
-populateDisciplineDropdown();
+// Hjelpefunksjon for å oppdatere topp-kortene
+function updateCards(totalDist, hit, isBlocked) {
+  const cardStatus = $('cardStatus');
+  const cardHit = $('cardHit');
+
+  $('valDist').innerText = totalDist.toFixed(2);
+
+  if (isBlocked) {
+    cardStatus.className = 'card red anim';
+    $('valStatus').innerText = 'HINDRET';
+    $('subStatus').innerText = 'Kollisjon oppdaget';
+
+    cardHit.className = 'card red anim';
+    $('valHit').innerText = hit.distance.toFixed(2);
+  } else {
+    cardStatus.className = 'card green anim';
+    $('valStatus').innerText = 'OK';
+    $('subStatus').innerText = 'Fri sikt';
+
+    cardHit.className = 'card green anim';
+    $('valHit').innerText = 'Ingen';
+  }
+}
+
+// Hjelpefunksjon for å legge til rad i loggen
+function addToLog(totalDist, hit, isBlocked, eye, obj) {
+  if (checksDone === 0) {
+    tableBody.innerHTML = ''; // Fjern "ingen sjekker utført"-meldingen
+  }
+  checksDone++;
+
+  const statusPill = isBlocked 
+    ? `<span class="status-pill miss">HINDRET</span>` 
+    : `<span class="status-pill ok">FRI SIKT</span>`;
+  
+  const freeSightDist = isBlocked ? hit.distance.toFixed(2) + ' m' : totalDist.toFixed(2) + ' m';
+
+  const newRow = `
+    <tr>
+      <td>${statusPill}</td>
+      <td>${totalDist.toFixed(2)} m</td>
+      <td>${freeSightDist}</td>
+      <td>+${eye} m</td>
+      <td>+${obj} m</td>
+    </tr>
+  `;
+
+  // Legg til øverst i tabellen
+  tableBody.insertAdjacentHTML('afterbegin', newRow);
+}
+
+// Start oppkobling med en gang
 connect();
 </script>
 </body>
