@@ -1,63 +1,94 @@
 let connection;
-let workspace;
 
-// Initialiser kobling til Trimble Connect
-window.onclick = async () => {
-    if (!connection) {
+/**
+ * Initialiserer koblingen til Trimble Connect med en gang utvidelsen laster.
+ */
+async function initialize() {
+    try {
         connection = await TrimbleConnectWorkspace.connect();
-        workspace = connection.ui.workspace;
-        console.log("Koblet til Trimble Connect");
+        console.log("Trimble Connect Extension initialized");
+    } catch (error) {
+        console.error("Kunne ikke koble til Trimble Connect:", error);
     }
-};
+}
+
+initialize();
 
 document.getElementById('runCheck').addEventListener('click', async () => {
-    const eyeOffset = parseFloat(document.getElementById('eyeHeight').value);
-    const objOffset = parseFloat(document.getElementById('objHeight').value);
+    if (!connection) {
+        alert("Utvidelsen er ikke koblet til 3D-vieweren ennå.");
+        return;
+    }
 
-    // 1. Be brukeren velge to punkter
-    // Merk: pickPositions er en forenklet fremstilling av API-flyten
-    const posA = await workspace.pickPosition({ prompt: "Klikk på observatørpunkt" });
-    const posB = await workspace.pickPosition({ prompt: "Klikk på objektet (skiltet)" });
+    const workspace = connection.ui.workspace;
 
-    if (posA && posB) {
-        // Juster høyder
-        const start = { x: posA.x, y: posA.y, z: posA.z + eyeOffset };
-        const end = { x: posB.x, y: posB.y, z: posB.z + objOffset };
+    // Hent verdier fra input-feltene
+    const eyeOffset = parseFloat(document.getElementById('eyeHeight').value) || 0;
+    const objOffset = parseFloat(document.getElementById('objHeight').value) || 0;
 
-        // 2. Beregn retning og distanse
-        const direction = {
-            x: end.x - start.x,
-            y: end.y - start.y,
-            z: end.z - start.z
+    try {
+        // 1. Be brukeren velge startpunkt (Observatør)
+        // pickPosition returnerer {x, y, z} i modell-koordinater
+        const pickA = await workspace.pickPosition();
+        if (!pickA) return; // Bruker avbrøt
+
+        // Juster høyden kun hvis offset er definert (> 0)
+        const start = { 
+            x: pickA.x, 
+            y: pickA.y, 
+            z: eyeOffset > 0 ? pickA.z + eyeOffset : pickA.z 
         };
-        const distance = Math.sqrt(direction.x**2 + direction.y**2 + direction.z**2);
 
-        // 3. Utfør Raycast (Kollisjonssjekk)
+        // 2. Be brukeren velge sluttpunkt (Objekt/Skilt)
+        const pickB = await workspace.pickPosition();
+        if (!pickB) return;
+
+        // Juster høyden kun hvis offset er definert (> 0)
+        const end = { 
+            x: pickB.x, 
+            y: pickB.y, 
+            z: objOffset > 0 ? pickB.z + objOffset : pickB.z 
+        };
+
+        // 3. Beregn retning og total distanse
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const dz = end.z - start.z;
+        const totalDistance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        const direction = { x: dx / totalDistance, y: dy / totalDistance, z: dz / totalDistance };
+
+        // 4. Utfør Raycast (Sjekk for hindringer)
+        // Vi sjekker om strålen treffer noe før den når frem til punkt B
         const raycastResult = await workspace.raycast({
             origin: start,
             direction: direction,
-            maxDistance: distance
+            maxDistance: totalDistance
         });
 
-        // 4. Konklusjon og Visualisering
-        let isBlocked = raycastResult && raycastResult.distance < (distance - 0.1);
-        let color = isBlocked ? { r: 255, g: 0, b: 0, a: 1 } : { r: 0, g: 255, b: 0, a: 1 };
+        // 5. Visualisering
+        // Vi bruker en liten toleranse (0.05m) for å unngå at den treffer selve målpunktet
+        const isBlocked = raycastResult && raycastResult.distance < (totalDistance - 0.05);
+        const lineColor = isBlocked ? { r: 255, g: 0, b: 0, a: 1 } : { r: 0, g: 255, b: 0, a: 1 };
 
-        // Tegn linjen i 3D-visningen
         await workspace.addGraphicPrimitives([
             {
                 type: 'line',
                 start: start,
                 end: isBlocked ? raycastResult.position : end,
-                color: color,
-                width: 3
+                color: lineColor,
+                width: 5
             }
         ]);
 
-        // Oppdater UI
+        // 6. Oppdater UI med status
         const resBox = document.getElementById('resultBox');
         resBox.style.display = 'block';
         resBox.className = isBlocked ? 'result fail' : 'result ok';
-        resBox.innerText = isBlocked ? `Sikt hindret etter ${raycastResult.distance.toFixed(2)}m` : "Fri sikt bekreftet!";
+        resBox.innerText = isBlocked 
+            ? `Sikt hindret etter ${raycastResult.distance.toFixed(2)}m` 
+            : `Fri sikt bekreftet (${totalDistance.toFixed(2)}m)`;
+
+    } catch (err) {
+        console.error("Feil under siktkontroll:", err);
     }
 });
