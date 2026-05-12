@@ -2,20 +2,31 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Siktkontroll Lokal</title>
+    <title>Siktkontroll v5</title>
+    <!-- Henter SDK direkte -->
+    <script src="https://connect-extensions.trimble.com/js/2.0.0/trimble.connect.workspace.api.js"></script>
     <style>
         body { font-family: sans-serif; padding: 15px; background: white; }
         .card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        input { width: 60px; padding: 5px; margin-left: 10px; }
-        button { width: 100%; padding: 12px; margin-top: 15px; background: #0078d4; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        button:disabled { background: #ccc; }
-        #log { font-size: 11px; color: #666; margin-top: 10px; border-top: 1px solid #eee; padding-top: 5px; }
-        .status-ok { color: green; font-weight: bold; }
+        input { width: 60px; padding: 5px; margin-left: 10px; border: 1px solid #ccc; }
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            margin-top: 15px; 
+            background: #0078d4; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            cursor: pointer; 
+        }
+        button:hover { background: #005a9e; }
+        #log { font-size: 13px; color: #333; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; line-height: 1.4; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h3>Siktkontroll v4</h3>
+        <h3>Siktkontroll v5</h3>
         <div style="margin-bottom:10px">
             <label>Øyehøyde (m):</label>
             <input type="number" id="h1" value="1.1" step="0.1">
@@ -24,65 +35,72 @@
             <label>Objekthøyde (m):</label>
             <input type="number" id="h2" value="0.5" step="0.1">
         </div>
-        <button id="btn" disabled>Kobler til Trimble...</button>
-        <div id="log">Initialiserer...</div>
+        
+        <!-- Knappen er nå klikkbar umiddelbart -->
+        <button id="btn">Start Siktkontroll</button>
+        
+        <div id="log">Klar til start. Sørg for at du har en 3D-modell synlig i vinduet bak.</div>
     </div>
 
-    <!-- Her baker vi inn en "bootstrapper" for Trimble Connect -->
     <script>
-        // Dette er en minimal wrapper for å laste SDK-et manuelt hvis CDN feiler
-        (function() {
-            var script = document.createElement('script');
-            script.src = "https://connect-extensions.trimble.com/js/2.0.0/trimble.connect.workspace.api.js";
-            script.onload = function() { console.log("SDK lastet fra Trimble"); };
-            document.head.appendChild(script);
-        })();
-
         let conn = null;
         const log = (msg) => document.getElementById('log').innerHTML = msg;
 
-        async function checkConnection() {
-            if (typeof TrimbleConnectWorkspace !== 'undefined') {
+        // Alt skjer først NÅR du trykker på knappen
+        document.getElementById('btn').onclick = async () => {
+            log("Starter oppkobling...");
+            
+            // 1. Sjekk at biblioteket finnes
+            if (typeof TrimbleConnectWorkspace === 'undefined') {
+                log("<b style='color:red'>Feil: Trimble SDK ble ikke lastet. Prøv å oppdatere siden (F5).</b>");
+                return;
+            }
+
+            // 2. Koble til (gjør dette bare første gang du trykker)
+            if (!conn) {
                 try {
                     conn = await TrimbleConnectWorkspace.connect();
-                    log("<span class='status-ok'>Tilkoblet Trimble Connect!</span>");
-                    document.getElementById('btn').disabled = false;
-                    document.getElementById('btn').innerText = "Klikk for å starte kontroll";
-                } catch (e) {
-                    log("Tilkobling feilet. Prøver igjen...");
-                    setTimeout(checkConnection, 1000);
+                    log("Tilkoblet 3D-vinduet!");
+                } catch (err) {
+                    log("<b style='color:red'>Kunne ikke koble til: " + err.message + "</b>");
+                    return;
                 }
-            } else {
-                log("Venter på SDK... (Sjekk adblocker hvis dette tar tid)");
-                setTimeout(checkConnection, 1000);
             }
-        }
 
-        document.getElementById('btn').onclick = async () => {
+            // 3. Utfør plukking
             try {
                 const ws = conn.ui.workspace;
-                log("<b>Steg 1:</b> Klikk på veien (observatør)...");
-                const p1 = await ws.pickPosition();
-                if(!p1) return;
                 
-                log("<b>Steg 2:</b> Klikk på objektet (skiltet)...");
+                log("<b>Steg 1:</b> Klikk på veien (Startpunkt)...");
+                const p1 = await ws.pickPosition();
+                if(!p1) { log("Handlingen ble avbrutt."); return; }
+                
+                log("<b>Steg 2:</b> Klikk på objektet (Målpunkt)...");
                 const p2 = await ws.pickPosition();
-                if(!p2) return;
+                if(!p2) { log("Handlingen ble avbrutt."); return; }
 
-                const h1 = parseFloat(document.getElementById('h1').value);
-                const h2 = parseFloat(document.getElementById('h2').value);
+                // Hent høyder
+                const h1 = parseFloat(document.getElementById('h1').value) || 0;
+                const h2 = parseFloat(document.getElementById('h2').value) || 0;
 
+                // Juster Z-koordinat
                 const start = { x: p1.x, y: p1.y, z: p1.z + h1 };
                 const end = { x: p2.x, y: p2.y, z: p2.z + h2 };
 
+                // Beregn vektor og avstand
                 const v = { x: end.x - start.x, y: end.y - start.y, z: end.z - start.z };
                 const d = Math.sqrt(v.x**2 + v.y**2 + v.z**2);
                 const dir = { x: v.x/d, y: v.y/d, z: v.z/d };
 
-                log("Beregner sikt...");
+                log("Beregner siktlinje...");
+                
+                // Skyter strålen
                 const hit = await ws.raycast({ origin: start, direction: dir, maxDistance: d });
+                
+                // Vi trekker fra 0.1m i toleranse slik at den ikke "treffer" selve målet og gir falsk feil
                 const blocked = hit && hit.distance < (d - 0.1);
 
+                // Tegn linjen
                 await ws.addGraphicPrimitives([{
                     type: 'line',
                     start: start,
@@ -91,13 +109,15 @@
                     width: 5
                 }]);
                 
-                log(blocked ? "<b style='color:red'>SIKT HINDRET!</b>" : "<b style='color:green'>FRI SIKT!</b>");
+                // Resultat
+                log(blocked 
+                    ? `<b style='color:red'>SIKT HINDRET!</b><br>Treff etter ${hit.distance.toFixed(1)} meter.` 
+                    : `<b style='color:green'>FRI SIKT!</b><br>Avstand: ${d.toFixed(1)} meter.`);
+                    
             } catch (err) {
-                log("Feil: " + err.message);
+                log("<b style='color:red'>En feil oppstod: " + err.message + "</b>");
             }
         };
-
-        checkConnection();
     </script>
 </body>
 </html>
