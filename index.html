@@ -2,7 +2,7 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8"/>
-  <title>Siktlinje V9</title>
+  <title>Siktlinje V10</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <style>
@@ -75,7 +75,7 @@
       font-family: var(--sans);
       font-size: 12px;
       font-weight: 700;
-      padding: 7px 14px;
+      padding: 8px 14px;
       border-radius: 6px;
       border: none;
       cursor: pointer;
@@ -86,8 +86,11 @@
     .btn:disabled { opacity: .4; cursor: not-allowed; }
     .btn:not(:disabled):hover { opacity: .85; }
     .btn:not(:disabled):active { transform: scale(.97); }
+    
     .btn-primary { background: var(--blue); color: #000; }
     .btn-danger  { background: #21262d; color: var(--red); border: 1px solid #3a1c1c; margin-top: 10px; }
+    .btn-green   { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+    .btn-red     { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
 
     #statusBar {
       font-family: var(--mono);
@@ -105,7 +108,7 @@
     #modelBar {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      padding: 8px 16px;
+      padding: 10px 16px;
       display: flex;
       gap: 10px;
       align-items: center;
@@ -125,7 +128,7 @@
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 6px 10px;
-      width: 80px;
+      width: 60px;
     }
 
     main {
@@ -163,16 +166,22 @@
       text-align: center;
       margin-top: 15px;
     }
-    .card .value { font-size: 24px; font-weight: 800; color: var(--green); }
+    .card .value { font-size: 24px; font-weight: 800; color: var(--blue); }
     .card .sub { font-size: 10px; color: var(--muted); font-family: var(--mono); }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
 
 <header>
   <div class="header-title">
-    <h1>Siktlinje V9 (Visuell)</h1>
-    <p>Gjør to punktmålinger om til en 3D-siktlinje med høyde-offset.</p>
+    <h1>Siktlinje V10 (Dokumentasjon)</h1>
+    <p>Visuell kontroll med manuell fargemerking for dokumentasjon.</p>
   </div>
   <span class="badge" id="modelBadge">Ikke tilkoblet</span>
 </header>
@@ -180,40 +189,55 @@
 <div id="statusBar">Laster...</div>
 
 <div id="modelBar">
-  <label>Øyehøyde (m):</label>
+  <label>Øyehøyde:</label>
   <input type="number" id="eyeHeight" value="1.1" step="0.1">
-  <label style="margin-left: 15px;">Objekthøyde (m):</label>
+  <label style="margin-left: 10px;">Objekthøyde:</label>
   <input type="number" id="objHeight" value="0.5" step="0.1">
 </div>
 
 <main id="mainContent">
   <div class="panel">
-    <h3>Hvordan bruke verktøyet:</h3>
+    <h3>Arbeidsflyt:</h3>
     <div class="instructions">
       <ol>
-        <li>Bruk Trimbles innebygde måleverktøy: <b>Mål &gt; Punkt</b> (Single Point).</li>
-        <li>Sett ett punkt der bilen/observatøren er.</li>
-        <li>Sett ett punkt på objektet/skiltet.</li>
-        <li>Trykk på knappen under!</li>
+        <li>Sett ut to punktmålinger (Observatør og Objekt).</li>
+        <li>Klikk <b>Generer Siktlinje</b>.</li>
+        <li>Inspiser linjen i 3D-modellen.</li>
+        <li>Sett fargen på linjen for å dokumentere resultatet.</li>
       </ol>
     </div>
-    <button class="btn btn-primary" id="btnStart" disabled style="margin-top: 15px;">▶ Generer 3D Siktlinje</button>
-    <button class="btn btn-danger" id="btnClear" disabled>🗑 Fjern alle linjer</button>
+    <button class="btn btn-primary" id="btnStart" disabled style="margin-top: 15px;">▶ Generer Siktlinje</button>
   </div>
 
-  <div class="card" id="resultCard" style="display:none;">
-    <div class="label" style="font-size: 11px; text-transform: uppercase; color: var(--muted);">Avstand langs linje</div>
-    <div class="value" id="valDist">-</div>
-    <div class="sub">meter (inkl. høyde)</div>
+  <div class="panel" id="documentationPanel" style="display:none; border-color: var(--blue);">
+    <h3 style="text-align: center;">Manuell Vurdering</h3>
+    <div class="card" style="margin-top: 0;">
+      <div class="label" style="font-size: 11px; text-transform: uppercase; color: var(--muted);">Teoretisk siktlengde</div>
+      <div class="value" id="valDist">-</div>
+      <div class="sub">meter (inkludert høyde-offset)</div>
+    </div>
+    
+    <div class="button-row">
+      <button class="btn btn-green" id="btnSetGreen">✅ Sikten er OK</button>
+      <button class="btn btn-red" id="btnSetRed">❌ Sikten er hindret</button>
+    </div>
   </div>
+
+  <button class="btn btn-danger" id="btnClear" disabled>🗑 Fjern alle linjer</button>
 </main>
 
 <script>
 let API = null;
 
+// Globale variabler for å huske hvor linjen er
+let currentStartPos = null;
+let currentEndPos = null;
+
 const $ = id => document.getElementById(id);
 const btnStart = $('btnStart');
 const btnClear = $('btnClear');
+const btnSetGreen = $('btnSetGreen');
+const btnSetRed = $('btnSetRed');
 const statusBar = $('statusBar');
 const modelBadge = $('modelBadge');
 
@@ -239,7 +263,7 @@ async function connect() {
 
     btnStart.disabled = false;
     btnClear.disabled = false;
-    setStatus('✅ Tilkoblet! Sett ut to punktmålinger og trykk "Generer".', 'ok');
+    setStatus('✅ Tilkoblet! Sett ut to punkter og trykk Generer.', 'ok');
     modelBadge.textContent = 'Tilkoblet';
   } catch (e) {
     setStatus('❌ ' + (e.message || e), 'error');
@@ -247,78 +271,88 @@ async function connect() {
   }
 }
 
-// 2. Les av punkter og tegn siktlinje
+// Funksjon for å tegne linjen med valgfri farge
+async function drawLine(colorRGBA) {
+  if (!currentStartPos || !currentEndPos) return;
+  
+  // Sletter forrige linje før vi tegner en ny
+  await API.markup.removeMarkups();
+  
+  await API.markup.addLineMarkups([{
+    start: currentStartPos,
+    end: currentEndPos,
+    color: colorRGBA
+  }]);
+}
+
+// 2. Les av punkter og tegn initiell siktlinje
 btnStart.addEventListener('click', async () => {
   try {
-    setStatus('Henter punktmålinger fra modellen...', 'warn');
-    
-    // Henter ut alle enkle punktmålinger brukeren har satt ut
+    setStatus('Henter punkter...', 'warn');
     const points = await API.markup.getSinglePointMarkups();
     
     if (!points || points.length < 2) {
-      setStatus('⚠️ Siktlinje avbrutt: Du må sette ut minst 2 punktmålinger først!', 'error');
+      setStatus('⚠️ Du må sette ut minst 2 punktmålinger (måleverktøy) først!', 'error');
       return;
     }
 
-    // Vi tar de to SIFSTE punktene brukeren satte ut
-    const point1 = points[points.length - 2];
-    const point2 = points[points.length - 1];
-
-    const p1 = point1.start;
-    const p2 = point2.start;
+    const p1 = points[points.length - 2].start;
+    const p2 = points[points.length - 1].start;
 
     const eyeOffset = parseFloat($('eyeHeight').value) || 0;
     const objOffset = parseFloat($('objHeight').value) || 0;
 
-    // Trimble-koordinater er i millimeter. Konverterer offset til mm.
-    const startPos = {
+    // Trimble bruker millimeter
+    currentStartPos = {
       positionX: p1.positionX,
       positionY: p1.positionY,
       positionZ: p1.positionZ + (eyeOffset * 1000)
     };
 
-    const endPos = {
+    currentEndPos = {
       positionX: p2.positionX,
       positionY: p2.positionY,
       positionZ: p2.positionZ + (objOffset * 1000)
     };
 
-    // Tegner selve siktlinjen (grønn strek)
-    await API.markup.addLineMarkups([{
-      start: startPos,
-      end: endPos,
-      color: { r: 0, g: 255, b: 0, a: 255 } // Solid grønn farge
-    }]);
+    // Tegn linjen lyseblå/nøytral først, eller grønn
+    await drawLine({ r: 0, g: 255, b: 0, a: 255 });
 
-    // Rydder opp - sletter de to punktene som ble brukt som basis
-    const idsToRemove = [point1.id, point2.id].filter(id => id !== undefined);
-    if (idsToRemove.length > 0) {
-      await API.markup.removeMarkups(idsToRemove);
-    }
-
-    // Beregner avstand for moro skyld (i meter)
-    const dx = (endPos.positionX - startPos.positionX) / 1000;
-    const dy = (endPos.positionY - startPos.positionY) / 1000;
-    const dz = (endPos.positionZ - startPos.positionZ) / 1000;
+    // Beregn avstand (i meter)
+    const dx = (currentEndPos.positionX - currentStartPos.positionX) / 1000;
+    const dy = (currentEndPos.positionY - currentStartPos.positionY) / 1000;
+    const dz = (currentEndPos.positionZ - currentStartPos.positionZ) / 1000;
     const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
 
-    $('resultCard').style.display = 'block';
     $('valDist').innerText = dist.toFixed(2);
+    $('documentationPanel').style.display = 'block';
 
-    setStatus('✅ Siktlinje generert! Kontroller visuelt mot modellen.', 'ok');
+    setStatus('👀 Linje generert! Kontroller sikten visuelt, og velg farge for dokumentasjon.', 'ok');
 
   } catch (err) {
-    setStatus('❌ Feil under generering: ' + err.message, 'error');
-    console.error(err);
+    setStatus('❌ Feil: ' + err.message, 'error');
   }
 });
 
-// Fjerner alle linjer (hvis man har testet flere ganger og det blir rotete)
+// Fargeknapper for dokumentasjon
+btnSetGreen.addEventListener('click', async () => {
+  await drawLine({ r: 0, g: 255, b: 0, a: 255 }); // Grønn
+  setStatus('✅ Linjen er farget GRØNN. Klar for skjermbilde!', 'ok');
+});
+
+btnSetRed.addEventListener('click', async () => {
+  await drawLine({ r: 255, g: 0, b: 0, a: 255 }); // Rød
+  setStatus('❌ Linjen er farget RØD. Klar for skjermbilde/ToDo!', 'error');
+});
+
+// Fjerner alt
 btnClear.addEventListener('click', async () => {
   try {
     await API.markup.removeMarkups();
-    $('resultCard').style.display = 'none';
-    setStatus('✅ Alle målinger og siktlinjer er slettet.', 'ok');
+    currentStartPos = null;
+    currentEndPos = null;
+    $('documentationPanel').style.display = 'none';
+    setStatus('✅ Alt slettet. Klar for ny måling.', 'ok');
   } catch (e) {
     setStatus('❌ Feil ved sletting: ' + e.message, 'error');
   }
