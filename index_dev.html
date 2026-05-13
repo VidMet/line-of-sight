@@ -2,7 +2,7 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8"/>
-  <title>Siktkontroll V12</title>
+  <title>Siktkontroll V13</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <style>
@@ -177,7 +177,7 @@
   </svg>
   
   <div class="header-title">
-    <h1>Siktpyramide V12</h1>
+    <h1>Siktpyramide V13</h1>
     <p>Oppretter et 3D-siktvolum mot hele det valgte objektet.</p>
   </div>
   <span class="badge" id="modelBadge">Ikke tilkoblet</span>
@@ -280,7 +280,7 @@ btnStart.addEventListener('click', async () => {
   try {
     setStatus('Henter data fra modellen...', 'warn');
     
-    // Sjekk punktet FØRST (siden det er det brukeren gjør først i ny flyt)
+    // Sjekk punktet FØRST (observatøren)
     const points = await API.markup.getSinglePointMarkups();
     if (!points || points.length === 0) {
       setStatus('⚠️ Avbrutt: Du må sette et punkt på veien først!', 'error');
@@ -288,8 +288,18 @@ btnStart.addEventListener('click', async () => {
     }
     
     // Sjekk seleksjonen (Skiltet) ETTERPÅ
-    const selection = await API.viewer.getSelection();
-    if (!selection || !selection.modelObjectIds || selection.modelObjectIds.length === 0) {
+    const selectionRaw = await API.viewer.getSelection();
+    
+    // Håndterer at Trimble noen ganger returnerer en liste direkte, 
+    // og noen ganger et objekt som inneholder 'modelObjectIds'
+    let selectedIds = [];
+    if (Array.isArray(selectionRaw)) {
+        selectedIds = selectionRaw;
+    } else if (selectionRaw && selectionRaw.modelObjectIds) {
+        selectedIds = selectionRaw.modelObjectIds;
+    }
+
+    if (selectedIds.length === 0) {
       setStatus('⚠️ Avbrutt: Du må markere et skilt med pil-verktøyet før du trykker!', 'error');
       return;
     }
@@ -304,10 +314,10 @@ btnStart.addEventListener('click', async () => {
       positionZ: obsPoint.positionZ + (eyeOffset * 1000)
     };
 
-    // Hent Bounding Box for det valgte skiltet
-    const bbox = await API.viewer.getBoundingBox(selection.modelObjectIds);
+    // Hent Bounding Box for det valgte skiltet ved hjelp av de rensede ID-ene
+    const bbox = await API.viewer.getBoundingBox(selectedIds);
     if (!bbox || !bbox.min || !bbox.max) {
-      throw new Error("Kunne ikke beregne Bounding Box for objektet.");
+      throw new Error("Kunne ikke beregne Bounding Box for det valgte objektet.");
     }
 
     // Ekstraher hjørner fra Bounding Box
