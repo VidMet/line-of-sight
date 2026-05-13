@@ -2,7 +2,7 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8"/>
-  <title>Siktkontroll V11</title>
+  <title>Siktkontroll V12</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <style>
@@ -177,7 +177,7 @@
   </svg>
   
   <div class="header-title">
-    <h1>Siktpyramide V11 (Bounding Box)</h1>
+    <h1>Siktpyramide V12</h1>
     <p>Oppretter et 3D-siktvolum mot hele det valgte objektet.</p>
   </div>
   <span class="badge" id="modelBadge">Ikke tilkoblet</span>
@@ -193,11 +193,11 @@
 
 <main id="mainContent">
   <div class="panel">
-    <h3>Arbeidsflyt for Siktpyramide:</h3>
+    <h3>Arbeidsflyt:</h3>
     <div class="instructions">
       <ol>
-        <li>Bruk pil-verktøyet til å <b>velge skiltet</b> (så det lyser opp).</li>
         <li>Bruk Punkt-verktøyet til å sette <b>ett punkt på veien</b>.</li>
+        <li>Bruk Pil-verktøyet til å <b>velge skiltet</b> (så det lyser opp).</li>
         <li>Klikk på knappen under!</li>
       </ol>
     </div>
@@ -251,7 +251,7 @@ async function connect() {
 
     btnStart.disabled = false;
     btnClear.disabled = false;
-    setStatus('✅ Tilkoblet! Velg et skilt og sett et punkt.', 'ok');
+    setStatus('✅ Tilkoblet! Følg arbeidsflyten over for å starte.', 'ok');
     modelBadge.textContent = 'Tilkoblet';
   } catch (e) {
     setStatus('❌ ' + (e.message || e), 'error');
@@ -280,17 +280,17 @@ btnStart.addEventListener('click', async () => {
   try {
     setStatus('Henter data fra modellen...', 'warn');
     
-    // Hent det valgte objektet (Skiltet)
-    const selection = await API.viewer.getSelection();
-    if (!selection || !selection.modelObjectIds || selection.modelObjectIds.length === 0) {
-      setStatus('⚠️ Avbrutt: Du må markere et objekt (skilt) først!', 'error');
-      return;
-    }
-
-    // Hent punktet på veien (Observatør)
+    // Sjekk punktet FØRST (siden det er det brukeren gjør først i ny flyt)
     const points = await API.markup.getSinglePointMarkups();
     if (!points || points.length === 0) {
-      setStatus('⚠️ Avbrutt: Du mangler å sette et punktmål på veien!', 'error');
+      setStatus('⚠️ Avbrutt: Du må sette et punkt på veien først!', 'error');
+      return;
+    }
+    
+    // Sjekk seleksjonen (Skiltet) ETTERPÅ
+    const selection = await API.viewer.getSelection();
+    if (!selection || !selection.modelObjectIds || selection.modelObjectIds.length === 0) {
+      setStatus('⚠️ Avbrutt: Du må markere et skilt med pil-verktøyet før du trykker!', 'error');
       return;
     }
 
@@ -310,8 +310,7 @@ btnStart.addEventListener('click', async () => {
       throw new Error("Kunne ikke beregne Bounding Box for objektet.");
     }
 
-    // Ekstraher hjørner fra Bounding Box (Trimbles koordinater for Bounding Box er typisk i meter, 
-    // så vi ganger med 1000 for å matche Markup API-et som bruker millimeter)
+    // Ekstraher hjørner fra Bounding Box
     const minX = bbox.min.x * 1000; const minY = bbox.min.y * 1000; const minZ = bbox.min.z * 1000;
     const maxX = bbox.max.x * 1000; const maxY = bbox.max.y * 1000; const maxZ = bbox.max.z * 1000;
 
