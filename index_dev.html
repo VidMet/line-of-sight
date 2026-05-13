@@ -2,7 +2,7 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8"/>
-  <title>Siktkontroll V13</title>
+  <title>Siktkontroll V14</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <style>
@@ -315,7 +315,7 @@ btnStart.addEventListener('click', async () => {
     };
 
     // Hent Bounding Box for det valgte skiltet ved hjelp av de rensede ID-ene
-    const bbox = await API.viewer.getBoundingBox(selectedIds);
+    const bbox = await API.viewer.getObjectsBoundingBox(selectedIds);
     if (!bbox || !bbox.min || !bbox.max) {
       throw new Error("Kunne ikke beregne Bounding Box for det valgte objektet.");
     }
