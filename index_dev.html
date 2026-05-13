@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="da">
+<html lang="nb">
 <head>
   <meta charset="UTF-8"/>
-  <title>Sigtekontrol V11</title>
+  <title>Siktkontroll V11</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <style>
@@ -177,8 +177,8 @@
   </svg>
   
   <div class="header-title">
-    <h1>Sigtetragt V11 (Bounding Box)</h1>
-    <p>Opretter et 3D-sigtetrådnet mod hele skiltet.</p>
+    <h1>Siktpyramide V11 (Bounding Box)</h1>
+    <p>Oppretter et 3D-siktvolum mot hele det valgte objektet.</p>
   </div>
   <span class="badge" id="modelBadge">Ikke tilkoblet</span>
 </header>
@@ -186,29 +186,29 @@
 <div id="statusBar">Laster...</div>
 
 <div id="modelBar">
-  <label>Øjehøjde (m):</label>
+  <label>Øyehøyde (m):</label>
   <input type="number" id="eyeHeight" value="1.1" step="0.1">
-  <span style="font-size: 10px; color: var(--muted); margin-left: 10px;">(Objekthøjde beregnes nu automatisk)</span>
+  <span style="font-size: 10px; color: var(--muted); margin-left: 10px;">(Objekthøyde beregnes automatisk)</span>
 </div>
 
 <main id="mainContent">
   <div class="panel">
-    <h3>Arbejdsgang for Sigtetragt:</h3>
+    <h3>Arbeidsflyt for Siktpyramide:</h3>
     <div class="instructions">
       <ol>
-        <li>Brug pil-værktøjet til at <b>vælge skiltet</b> (så det lyser op).</li>
-        <li>Brug Punkt-værktøjet til at sætte <b>ét punkt på vejen</b>.</li>
-        <li>Klik på knappen herunder!</li>
+        <li>Bruk pil-verktøyet til å <b>velge skiltet</b> (så det lyser opp).</li>
+        <li>Bruk Punkt-verktøyet til å sette <b>ett punkt på veien</b>.</li>
+        <li>Klikk på knappen under!</li>
       </ol>
     </div>
-    <button class="btn btn-primary" id="btnStart" disabled style="margin-top: 15px;">▶ Generer Sigtetragt</button>
+    <button class="btn btn-primary" id="btnStart" disabled style="margin-top: 15px;">▶ Generer Siktpyramide</button>
   </div>
 
   <div class="panel" id="documentationPanel" style="display:none; border-color: var(--blue);">
-    <h3 style="text-align: center;">Dokumentér Sigte</h3>
+    <h3 style="text-align: center;">Dokumenter Sikt</h3>
     <div class="button-row">
-      <button class="btn btn-green" id="btnSetGreen">✅ Sigten er OK</button>
-      <button class="btn btn-red" id="btnSetRed">❌ Sigten er hindret</button>
+      <button class="btn btn-green" id="btnSetGreen">✅ Sikten er OK</button>
+      <button class="btn btn-red" id="btnSetRed">❌ Sikten er hindret</button>
     </div>
   </div>
 
@@ -218,7 +218,7 @@
 <script>
 let API = null;
 
-// Gemmer trådnettet (linjerne), så vi kan skifte farve på dem alle på én gang
+// Lagrer trådnettet (linjene), slik at vi kan bytte farge på alle på én gang
 let currentLines = [];
 
 const $ = id => document.getElementById(id);
@@ -234,15 +234,15 @@ function setStatus(msg, cls='') {
   statusBar.className = cls;
 }
 
-// 1. Opret forbindelse til Trimble Connect
+// 1. Opprett forbindelse til Trimble Connect
 async function connect() {
   try {
     if (!window.TrimbleConnectWorkspace?.connect) {
-      throw new Error('Trimble Connect API ikke tilgængeligt');
+      throw new Error('Trimble Connect API ikke tilgjengelig');
     }
 
-    setStatus('⏳ Forbinder til Trimble Connect…');
-    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Forbindelse tog for lang tid.')), 15000));
+    setStatus('⏳ Kobler til Trimble Connect…');
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Tilkoblingen tok for lang tid.')), 15000));
     
     API = await Promise.race([
       window.TrimbleConnectWorkspace.connect(window.parent, () => {}),
@@ -251,21 +251,21 @@ async function connect() {
 
     btnStart.disabled = false;
     btnClear.disabled = false;
-    setStatus('✅ Tilkoblet! Vælg et skilt og sæt et punkt.', 'ok');
+    setStatus('✅ Tilkoblet! Velg et skilt og sett et punkt.', 'ok');
     modelBadge.textContent = 'Tilkoblet';
   } catch (e) {
     setStatus('❌ ' + (e.message || e), 'error');
-    modelBadge.textContent = 'Fejl';
+    modelBadge.textContent = 'Feil';
   }
 }
 
-// Fælles funktion til at tegne eller omfarve trådnettet
+// Felles funksjon for å tegne eller omfarge trådnettet
 async function drawFrustum(colorRGBA) {
   if (currentLines.length === 0) return;
   
   await API.markup.removeMarkups(); // Fjern gamle linjer
   
-  // Opret de samme linjer med ny farve
+  // Opprett de samme linjene med ny farge
   const coloredLines = currentLines.map(line => ({
     start: line.start,
     end: line.end,
@@ -275,47 +275,47 @@ async function drawFrustum(colorRGBA) {
   await API.markup.addLineMarkups(coloredLines);
 }
 
-// 2. Generer Bounding Box Sigtetragt
+// 2. Generer Bounding Box Siktpyramide
 btnStart.addEventListener('click', async () => {
   try {
     setStatus('Henter data fra modellen...', 'warn');
     
-    // Hent det valgte objekt (Skiltet)
+    // Hent det valgte objektet (Skiltet)
     const selection = await API.viewer.getSelection();
     if (!selection || !selection.modelObjectIds || selection.modelObjectIds.length === 0) {
-      setStatus('⚠️ Sigtetragt afbrudt: Du skal markere et objekt (skilt) først!', 'error');
+      setStatus('⚠️ Avbrutt: Du må markere et objekt (skilt) først!', 'error');
       return;
     }
 
-    // Hent punktet på vejen (Observatør)
+    // Hent punktet på veien (Observatør)
     const points = await API.markup.getSinglePointMarkups();
     if (!points || points.length === 0) {
-      setStatus('⚠️ Sigtetragt afbrudt: Du mangler at sætte et punktmærke på vejen!', 'error');
+      setStatus('⚠️ Avbrutt: Du mangler å sette et punktmål på veien!', 'error');
       return;
     }
 
     const obsPoint = points[points.length - 1].start;
     const eyeOffset = parseFloat($('eyeHeight').value) || 0;
     
-    // Anvend offset til øjehøjden (omregn til millimeter)
+    // Legg til offset for øyehøyden (omregn til millimeter)
     const startPos = {
       positionX: obsPoint.positionX,
       positionY: obsPoint.positionY,
       positionZ: obsPoint.positionZ + (eyeOffset * 1000)
     };
 
-    // Hent Bounding Box for det valgte skilt
+    // Hent Bounding Box for det valgte skiltet
     const bbox = await API.viewer.getBoundingBox(selection.modelObjectIds);
     if (!bbox || !bbox.min || !bbox.max) {
       throw new Error("Kunne ikke beregne Bounding Box for objektet.");
     }
 
-    // Ekstraher hjørner fra Bounding Box (Trimbles koordinater er typisk i meter for Bounding Box API'et, 
-    // så vi ganger med 1000 for at matche Markup API'et som bruger millimeter)
+    // Ekstraher hjørner fra Bounding Box (Trimbles koordinater for Bounding Box er typisk i meter, 
+    // så vi ganger med 1000 for å matche Markup API-et som bruker millimeter)
     const minX = bbox.min.x * 1000; const minY = bbox.min.y * 1000; const minZ = bbox.min.z * 1000;
     const maxX = bbox.max.x * 1000; const maxY = bbox.max.y * 1000; const maxZ = bbox.max.z * 1000;
 
-    // Definer de 8 yderste hjørner af skiltet
+    // Definer de 8 ytterste hjørnene av objektet
     const targetCorners = [
       { positionX: minX, positionY: minY, positionZ: minZ },
       { positionX: maxX, positionY: minY, positionZ: minZ },
@@ -327,10 +327,10 @@ btnStart.addEventListener('click', async () => {
       { positionX: maxX, positionY: maxY, positionZ: maxZ }
     ];
 
-    // Nulstil gemte linjer og klargør trådnettet
+    // Nullstill lagrede linjer og klargjør trådnettet
     currentLines = [];
     
-    // Opret en linje fra øjet til hvert af de 8 hjørner
+    // Opprett en linje fra øyet til hvert av de 8 hjørnene
     targetCorners.forEach(corner => {
       currentLines.push({
         start: startPos,
@@ -338,30 +338,30 @@ btnStart.addEventListener('click', async () => {
       });
     });
 
-    // Tegn pyramiden i grøn farve
+    // Tegn pyramiden i grønn farge
     await drawFrustum({ r: 0, g: 255, b: 0, a: 255 });
 
-    // Ryd op: Slet det punkt brugeren satte på vejen
+    // Rydder opp: Slett det punktet brukeren satte ut på veien
     const obsId = points[points.length - 1].id;
     if (obsId) await API.markup.removeMarkups([obsId]);
 
     $('documentationPanel').style.display = 'block';
-    setStatus('👀 Sigtetragt oprettet mod skiltets yderpunkter! Kontrollér visuelt.', 'ok');
+    setStatus('👀 Siktpyramide opprettet mot skiltets ytterpunkter! Kontroller visuelt.', 'ok');
 
   } catch (err) {
-    setStatus('❌ Fejl: ' + err.message, 'error');
+    setStatus('❌ Feil: ' + err.message, 'error');
   }
 });
 
 // Fargeknapper
 btnSetGreen.addEventListener('click', async () => {
-  await drawFrustum({ r: 0, g: 255, b: 0, a: 255 }); // Grøn
-  setStatus('✅ Trådnet farvet GRØNT. Klar til skærmbillede!', 'ok');
+  await drawFrustum({ r: 0, g: 255, b: 0, a: 255 }); // Grønn
+  setStatus('✅ Trådnett farget GRØNT. Klar for skjermbilde!', 'ok');
 });
 
 btnSetRed.addEventListener('click', async () => {
   await drawFrustum({ r: 255, g: 0, b: 0, a: 255 }); // Rød
-  setStatus('❌ Trådnet farvet RØDT. Klar til skærmbillede/ToDo!', 'error');
+  setStatus('❌ Trådnett farget RØDT. Klar for skjermbilde/ToDo!', 'error');
 });
 
 // Fjern alt
@@ -370,9 +370,9 @@ btnClear.addEventListener('click', async () => {
     await API.markup.removeMarkups();
     currentLines = [];
     $('documentationPanel').style.display = 'none';
-    setStatus('✅ Alle trådnet slettet. Klar til ny måling.', 'ok');
+    setStatus('✅ Alle trådnett slettet. Klar for ny måling.', 'ok');
   } catch (e) {
-    setStatus('❌ Fejl ved sletning: ' + e.message, 'error');
+    setStatus('❌ Feil ved sletting: ' + e.message, 'error');
   }
 });
 
