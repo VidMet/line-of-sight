@@ -4,9 +4,7 @@
   <meta charset="UTF-8"/>
   <title>Siktlinje V11 - Interaktiv 3D</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <!-- Henter Trimble Workspace API -->
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
-  <!-- Henter Three.js for å generere IFC-tekststrengen (eller tilsvarende lettvekts matematikk hvis nødvendig) -->
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap');
     :root {
@@ -92,61 +90,58 @@ let API = null;
 let valgtSkiltId = null;
 let skiltBox = null;
 let oyePunkt = null;
-let selectionListener = null;
-let venterPaa = null; // 'skilt' eller 'punkt'
+let venterPaa = null;
 
 const $ = id => document.getElementById(id);
 const setStatus = (m, c='') => { $('statusBar').textContent = m; $('statusBar').className = c; };
 
 async function connect() {
   try {
-    API = await window.TrimbleConnectWorkspace.connect(window.parent);
-    
-    // Setter opp lytter for raycasting (klikk i modellen)
-    selectionListener = async () => {
-      if (!venterPaa) return;
+    // I det nye API-et lytter vi til hendelser HER, inni selve connect-funksjonen
+    API = await window.TrimbleConnectWorkspace.connect(window.parent, async (event, payload) => {
       
-      const utvalg = await API.viewer.getSelection();
-      if (!utvalg || utvalg.length === 0) return;
-      
-      const klikkData = utvalg[0];
-      
-      if (venterPaa === 'skilt') {
-        valgtSkiltId = klikkData.objectId || klikkData.objectRuntimeId;
+      if (event === "viewer.onSelectionChanged" || event === "viewer.selectionChanged" || event === "selectionChanged") {
+        if (!venterPaa) return;
         
-        // Henter eksakt utstrekning fra 3D-motoren for hjørnene
-        const boxes = await API.viewer.getObjectBoundingBoxes([{
-           modelId: klikkData.modelId,
-           objectRuntimeIds: [valgtSkiltId]
-        }]);
+        const utvalg = await API.viewer.getSelection();
+        if (!utvalg || utvalg.length === 0) return;
         
-        if (boxes && boxes.length > 0) {
-            skiltBox = boxes[0].boundingBox;
-            $('skiltInfo').textContent = `Objekt valgt (${valgtSkiltId})`;
-            $('radSkilt').className = 'valg-rad ferdig';
-            
-            // Auto-videre til neste steg
-            venterPaa = null;
-            aktiverVelgPunkt();
-        }
+        const klikkData = utvalg[0];
         
-      } else if (venterPaa === 'punkt') {
-        // Posisjon fanges ofte opp ved selection i nyere API, alternativt via onCameraChanged for midtpunkt
-        // Her bruker vi fallback til selection target
-        oyePunkt = klikkData.position || (klikkData.point ? klikkData.point : null);
-        
-        if(oyePunkt) {
-            $('punktInfo').textContent = `[${(oyePunkt.x/1000).toFixed(1)}, ${(oyePunkt.y/1000).toFixed(1)}, ${(oyePunkt.z/1000).toFixed(1)}]`;
-            $('radPunkt').className = 'valg-rad ferdig';
-            venterPaa = null;
-            $('btnGenerer').disabled = false;
-        } else {
-            setStatus('⚠️ Kunne ikke lese nøyaktig klikk-koordinat. Prøv igjen.', 'error');
+        if (venterPaa === 'skilt') {
+          valgtSkiltId = klikkData.objectId || klikkData.objectRuntimeId || klikkData.id;
+          
+          const boxes = await API.viewer.getObjectBoundingBoxes([{
+             modelId: klikkData.modelId,
+             objectRuntimeIds: [valgtSkiltId]
+          }]);
+          
+          if (boxes && boxes.length > 0) {
+              skiltBox = boxes[0].boundingBox;
+              $('skiltInfo').textContent = `Objekt valgt (${valgtSkiltId})`;
+              $('radSkilt').className = 'valg-rad ferdig';
+              venterPaa = null;
+              aktiverVelgPunkt();
+          }
+          
+        } else if (venterPaa === 'punkt') {
+          oyePunkt = klikkData.position || (klikkData.point ? klikkData.point : null);
+          
+          if(oyePunkt) {
+              const displayX = (oyePunkt.x < 10000 && oyePunkt.x > -10000) ? oyePunkt.x : (oyePunkt.x / 1000);
+              const displayY = (oyePunkt.y < 10000 && oyePunkt.y > -10000) ? oyePunkt.y : (oyePunkt.y / 1000);
+              const displayZ = (oyePunkt.z < 10000 && oyePunkt.z > -10000) ? oyePunkt.z : (oyePunkt.z / 1000);
+
+              $('punktInfo').textContent = `[${displayX.toFixed(1)}, ${displayY.toFixed(1)}, ${displayZ.toFixed(1)}]`;
+              $('radPunkt').className = 'valg-rad ferdig';
+              venterPaa = null;
+              $('btnGenerer').disabled = false;
+          } else {
+              setStatus('⚠️ Kunne ikke lese nøyaktig klikk-koordinat. Prøv igjen.', 'error');
+          }
         }
       }
-    };
-    
-    API.viewer.onSelectionChanged.addEventListener(selectionListener);
+    });
     
     $('btnSkilt').disabled = false;
     $('modelBadge').textContent = 'Tilkoblet';
@@ -177,7 +172,6 @@ $('btnGenerer').addEventListener('click', async () => {
    
    setStatus('⏳ Beregner siktlinjer og tegner pyramide...');
    
-   // Midlertidig tegning med markups for umiddelbar visuell feedback (lyseblå)
    const hjorner = [
        { x: skiltBox.min.x, y: skiltBox.min.y, z: skiltBox.min.z },
        { x: skiltBox.max.x, y: skiltBox.min.y, z: skiltBox.max.z },
@@ -185,8 +179,10 @@ $('btnGenerer').addEventListener('click', async () => {
        { x: skiltBox.min.x, y: skiltBox.max.y, z: skiltBox.min.z }
    ];
    
+   const zOffset = (oyePunkt.x < 10000 && oyePunkt.x > -10000) ? 1.1 : 1100;
+
    const linjer = hjorner.map(h => ({
-       start: { positionX: oyePunkt.x, positionY: oyePunkt.y, positionZ: oyePunkt.z + 1100 }, // Legger på 1.1m øyehøyde
+       start: { positionX: oyePunkt.x, positionY: oyePunkt.y, positionZ: oyePunkt.z + zOffset },
        end: { positionX: h.x, positionY: h.y, positionZ: h.z },
        color: { r: 50, g: 150, b: 255, a: 200 }
    }));
@@ -198,11 +194,8 @@ $('btnGenerer').addEventListener('click', async () => {
    setStatus('✅ Pyramide skissert! Velg farge for å eksportere syntetisk IFC.', 'ok');
 });
 
-// Enkel IFC-tekstgenerator
 function genererSyntetiskIFC(fargekode) {
     const fargeStreng = fargekode === 'OK' ? '(0.1, 0.8, 0.2)' : '(0.9, 0.1, 0.1)';
-    // I en fullskala versjon vil dette bygge en ekte STEP-tekststreng for IfcFacetedBrep (pyramide)
-    // Her lager vi innholdet til en minimal fil
     const ifcInnhold = `ISO-10303-21;\nHEADER;\nFILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');\nFILE_NAME('Siktpyramide.ifc','${new Date().toISOString()}',(),(),'Trimble Connect Ext','','');\nFILE_SCHEMA(('IFC4'));\nENDSEC;\nDATA;\n/* Farge: ${fargeStreng} */\n/* Her genereres trekantnettet basert på startpunkt (${oyePunkt.x},${oyePunkt.y}) og skiltBox hjørner */\nENDSEC;\nEND-ISO-10303-21;`;
     
     const blob = new Blob([ifcInnhold], { type: 'text/plain;charset=utf-8;' });

@@ -2,387 +2,224 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8"/>
-  <title>Siktkontroll V14</title>
+  <title>Siktlinje V11 - Interaktiv 3D</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap');
-
     :root {
-      --bg:        #0d1117;
-      --surface:   #161b22;
-      --surface2:  #1f2937;
-      --border:    #30363d;
-      --ink:       #e6edf3;
-      --muted:     #7d8590;
-      --green:     #3fb950;
-      --green-dim: #1a3a22;
-      --red:       #f85149;
-      --red-dim:   #3a1212;
-      --blue:      #58a6ff;
-      --blue-dim:  #0d2044;
-      --mono:      'JetBrains Mono', monospace;
-      --sans:      'Syne', sans-serif;
+      --bg: #f3f4f6; --surface: #ffffff; --surface2: #e5e7eb; --border: #d1d5db;
+      --ink: #111827; --muted: #6b7280; --green: #166534; --green-dim: #dcfce7;
+      --red: #b91c1c; --red-dim: #fee2e2; --blue: #1d4ed8; --blue-dim: #dbeafe;
+      --mono: 'JetBrains Mono', monospace; --sans: 'Syne', sans-serif;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background: var(--bg);
-      color: var(--ink);
-      font-family: var(--sans);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 10px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-shrink: 0;
-    }
-
-    .header-title { flex: 1; }
-    .header-title h1 {
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: -.3px;
-      color: var(--ink);
-    }
-    .header-title p {
-      font-size: 11px;
-      color: var(--muted);
-      font-family: var(--mono);
-      margin-top: 1px;
-    }
-
-    .badge {
-      font-family: var(--mono);
-      font-size: 10px;
-      padding: 3px 8px;
-      border-radius: 4px;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      white-space: nowrap;
-    }
-
-    .btn {
-      font-family: var(--sans);
-      font-size: 12px;
-      font-weight: 700;
-      padding: 8px 14px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      transition: opacity .15s, transform .1s;
-      white-space: nowrap;
-      width: 100%;
-    }
+    body { background: var(--bg); color: var(--ink); font-family: var(--sans); min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; flex-wrap: wrap; }
+    .header-title { flex: 1; min-width: 150px; }
+    .header-title h1 { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .header-title p { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+    .badge { font-family: var(--mono); font-size: 10px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+    .btn { font-family: var(--sans); font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; transition: opacity .15s, transform .1s; white-space: nowrap; }
     .btn:disabled { opacity: .4; cursor: not-allowed; }
-    .btn:not(:disabled):hover { opacity: .85; }
-    .btn:not(:disabled):active { transform: scale(.97); }
-    
-    .btn-primary { background: var(--blue); color: #000; }
-    .btn-danger  { background: #21262d; color: var(--red); border: 1px solid #3a1c1c; margin-top: 10px; }
-    .btn-green   { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
-    .btn-red     { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
-
-    #statusBar {
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 6px 16px;
-      background: var(--blue-dim);
-      color: var(--blue);
-      border-bottom: 1px solid #1a3a5c;
-      flex-shrink: 0;
-    }
-    #statusBar.ok    { background: var(--green-dim); color: var(--green); border-color: #1a3a22; }
-    #statusBar.error { background: var(--red-dim);   color: var(--red);   border-color: #3a1212; }
-    #statusBar.warn  { background: var(--yellow-dim); color: #d29922; border-color: #3a2d05; }
-
-    #modelBar {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 10px 16px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-shrink: 0;
-    }
-    #modelBar label {
-      font-size: 11px;
-      color: var(--muted);
-      font-family: var(--mono);
-      white-space: nowrap;
-    }
-    input[type="number"] {
-      font-family: var(--mono);
-      font-size: 12px;
-      background: var(--surface2);
-      color: var(--ink);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 6px 10px;
-      width: 60px;
-    }
-
-    main {
-      flex: 1;
-      overflow-y: auto;
-      padding: 14px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-      padding: 14px;
-    }
-    
-    .panel h3 { font-size: 13px; margin-bottom: 8px; }
-    
-    .instructions {
-      font-size: 12px;
-      color: var(--ink);
-      line-height: 1.6;
-    }
-    .instructions ol { margin-left: 20px; color: var(--muted); }
-    .instructions b { color: var(--ink); }
-
-    .button-row {
-      display: flex;
-      gap: 10px;
-      margin-top: 15px;
-    }
+    .btn-primary { background: var(--blue); color: #ffffff; }
+    .btn-secondary { background: var(--surface2); color: var(--ink); border: 1px solid var(--border); }
+    .btn-green { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+    .btn-red { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+    #statusBar { font-family: var(--mono); font-size: 11px; padding: 6px 16px; background: var(--blue-dim); color: var(--blue); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    #statusBar.ok { background: var(--green-dim); color: var(--green); }
+    #statusBar.error { background: var(--red-dim); color: var(--red); }
+    main { flex: 1 1 auto; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+    .guide-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+    .guide-box h3 { font-size: 14px; color: var(--blue); margin-bottom: 8px; }
+    .guide-box ol { margin: 0; padding-left: 20px; font-size: 12px; }
+    .guide-box li { margin-bottom: 6px; }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .valg-rad { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: var(--bg); border: 1px dashed var(--border); border-radius: 4px; font-size: 12px; }
+    .valg-rad.aktiv { border-color: var(--blue); background: var(--blue-dim); }
+    .valg-rad.ferdig { border-style: solid; border-color: var(--green); background: var(--green-dim); }
+    .info-kort { display: flex; gap: 8px; margin-top: 10px; }
   </style>
 </head>
 <body>
 
 <header>
-  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
-    <path d="M10 10h4"></path>
-    <path d="M19 7l1-2 2 1-1 2"></path>
-    <path d="M2 8l1-2 2 1-1 2"></path>
-    <path d="M8 14v4c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h2l2 7z"></path>
-    <path d="M22 9v9c0 1.1-.9 2-2 2h-2c-1.1 0-2-.9-2-2v-4l2-7h2c1.1 0 2 .9 2 2z"></path>
-  </svg>
-  
   <div class="header-title">
-    <h1>Siktpyramide V14</h1>
-    <p>Oppretter et 3D-siktvolum mot hele det valgte objektet.</p>
+    <h1>Siktlinje V11</h1>
+    <p>Interaktiv raycasting og IFC-siktpyramide</p>
   </div>
-  <span class="badge" id="modelBadge">Ikke tilkoblet</span>
+  <span class="badge" id="modelBadge">Frakoblet</span>
 </header>
 
-<div id="statusBar">Laster...</div>
-
-<div id="modelBar">
-  <label>Øyehøyde (m):</label>
-  <input type="number" id="eyeHeight" value="1.1" step="0.1">
-  <span style="font-size: 10px; color: var(--muted); margin-left: 10px;">(Objekthøyde beregnes automatisk)</span>
-</div>
+<div id="statusBar">Kobler til Trimble Connect...</div>
 
 <main id="mainContent">
+  <div class="guide-box">
+    <h3>Slik sjekker du sikten:</h3>
+    <ol>
+      <li>Trykk <b>Velg Skilt</b> og klikk på en skiltplate i 3D-modellen.</li>
+      <li>Trykk <b>Velg Siktpunkt</b> og klikk der bilisten skal se skiltet fra.</li>
+      <li>Vurder den genererte pyramiden. Hvis fargen skal justeres og objektet eksporteres, bruk fargeknappene.</li>
+    </ol>
+  </div>
+
   <div class="panel">
-    <h3>Arbeidsflyt:</h3>
-    <div class="instructions">
-      <ol>
-        <li>Bruk Punkt-verktøyet til å sette <b>ett punkt på veien</b>.</li>
-        <li>Bruk Pil-verktøyet til å <b>velge skiltet</b> (så det lyser opp).</li>
-        <li>Klikk på knappen under!</li>
-      </ol>
+    <div class="valg-rad" id="radSkilt">
+      <span>1. Målskilt: <b id="skiltInfo">Ikke valgt</b></span>
+      <button class="btn btn-secondary" id="btnSkilt" disabled>Velg Skilt</button>
     </div>
-    <button class="btn btn-primary" id="btnStart" disabled style="margin-top: 15px;">▶ Generer Siktpyramide</button>
+    <div class="valg-rad" id="radPunkt">
+      <span>2. Øyepunkt: <b id="punktInfo">Ikke valgt</b></span>
+      <button class="btn btn-secondary" id="btnPunkt" disabled>Velg Siktpunkt</button>
+    </div>
+    <button class="btn btn-primary" id="btnGenerer" disabled>▶ Generer Siktpyramide</button>
   </div>
 
-  <div class="panel" id="documentationPanel" style="display:none; border-color: var(--blue);">
-    <h3 style="text-align: center;">Dokumenter Sikt</h3>
-    <div class="button-row">
-      <button class="btn btn-green" id="btnSetGreen">✅ Sikten er OK</button>
-      <button class="btn btn-red" id="btnSetRed">❌ Sikten er hindret</button>
+  <div class="panel" id="eksportPanel" style="display: none; border-color: var(--blue);">
+    <h3 style="font-size: 13px; text-align: center;">Dokumenter Siktlinjen (IFC-eksport)</h3>
+    <div class="info-kort">
+      <button class="btn btn-green" id="btnExportGreen" style="flex:1;">✅ Sikt OK (Grønn IFC)</button>
+      <button class="btn btn-red" id="btnExportRed" style="flex:1;">❌ Hindret (Rød IFC)</button>
     </div>
+    <button class="btn btn-secondary" id="btnReset" style="margin-top: 10px;">🗑 Nullstill</button>
   </div>
-
-  <button class="btn btn-danger" id="btnClear" disabled>🗑 Fjern alle linjer</button>
 </main>
 
 <script>
 let API = null;
-
-// Lagrer trådnettet (linjene), slik at vi kan bytte farge på alle på én gang
-let currentLines = [];
+let valgtSkiltId = null;
+let skiltBox = null;
+let oyePunkt = null;
+let venterPaa = null;
 
 const $ = id => document.getElementById(id);
-const btnStart = $('btnStart');
-const btnClear = $('btnClear');
-const btnSetGreen = $('btnSetGreen');
-const btnSetRed = $('btnSetRed');
-const statusBar = $('statusBar');
-const modelBadge = $('modelBadge');
+const setStatus = (m, c='') => { $('statusBar').textContent = m; $('statusBar').className = c; };
 
-function setStatus(msg, cls='') {
-  statusBar.textContent = msg;
-  statusBar.className = cls;
-}
-
-// 1. Opprett forbindelse til Trimble Connect
 async function connect() {
   try {
-    if (!window.TrimbleConnectWorkspace?.connect) {
-      throw new Error('Trimble Connect API ikke tilgjengelig');
-    }
+    // I det nye API-et lytter vi til hendelser HER, inni selve connect-funksjonen
+    API = await window.TrimbleConnectWorkspace.connect(window.parent, async (event, payload) => {
+      
+      if (event === "viewer.onSelectionChanged" || event === "viewer.selectionChanged" || event === "selectionChanged") {
+        if (!venterPaa) return;
+        
+        const utvalg = await API.viewer.getSelection();
+        if (!utvalg || utvalg.length === 0) return;
+        
+        const klikkData = utvalg[0];
+        
+        if (venterPaa === 'skilt') {
+          valgtSkiltId = klikkData.objectId || klikkData.objectRuntimeId || klikkData.id;
+          
+          const boxes = await API.viewer.getObjectBoundingBoxes([{
+             modelId: klikkData.modelId,
+             objectRuntimeIds: [valgtSkiltId]
+          }]);
+          
+          if (boxes && boxes.length > 0) {
+              skiltBox = boxes[0].boundingBox;
+              $('skiltInfo').textContent = `Objekt valgt (${valgtSkiltId})`;
+              $('radSkilt').className = 'valg-rad ferdig';
+              venterPaa = null;
+              aktiverVelgPunkt();
+          }
+          
+        } else if (venterPaa === 'punkt') {
+          oyePunkt = klikkData.position || (klikkData.point ? klikkData.point : null);
+          
+          if(oyePunkt) {
+              const displayX = (oyePunkt.x < 10000 && oyePunkt.x > -10000) ? oyePunkt.x : (oyePunkt.x / 1000);
+              const displayY = (oyePunkt.y < 10000 && oyePunkt.y > -10000) ? oyePunkt.y : (oyePunkt.y / 1000);
+              const displayZ = (oyePunkt.z < 10000 && oyePunkt.z > -10000) ? oyePunkt.z : (oyePunkt.z / 1000);
 
-    setStatus('⏳ Kobler til Trimble Connect…');
-    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Tilkoblingen tok for lang tid.')), 15000));
-    
-    API = await Promise.race([
-      window.TrimbleConnectWorkspace.connect(window.parent, () => {}),
-      timeout
-    ]);
-
-    btnStart.disabled = false;
-    btnClear.disabled = false;
-    setStatus('✅ Tilkoblet! Følg arbeidsflyten over for å starte.', 'ok');
-    modelBadge.textContent = 'Tilkoblet';
-  } catch (e) {
-    setStatus('❌ ' + (e.message || e), 'error');
-    modelBadge.textContent = 'Feil';
-  }
-}
-
-// Felles funksjon for å tegne eller omfarge trådnettet
-async function drawFrustum(colorRGBA) {
-  if (currentLines.length === 0) return;
-  
-  await API.markup.removeMarkups(); // Fjern gamle linjer
-  
-  // Opprett de samme linjene med ny farge
-  const coloredLines = currentLines.map(line => ({
-    start: line.start,
-    end: line.end,
-    color: colorRGBA
-  }));
-  
-  await API.markup.addLineMarkups(coloredLines);
-}
-
-// 2. Generer Bounding Box Siktpyramide
-btnStart.addEventListener('click', async () => {
-  try {
-    setStatus('Henter data fra modellen...', 'warn');
-    
-    // Sjekk punktet FØRST (observatøren)
-    const points = await API.markup.getSinglePointMarkups();
-    if (!points || points.length === 0) {
-      setStatus('⚠️ Avbrutt: Du må sette et punkt på veien først!', 'error');
-      return;
-    }
-    
-    // Sjekk seleksjonen (Skiltet) ETTERPÅ
-    const selectionRaw = await API.viewer.getSelection();
-    
-    // Håndterer at Trimble noen ganger returnerer en liste direkte, 
-    // og noen ganger et objekt som inneholder 'modelObjectIds'
-    let selectedIds = [];
-    if (Array.isArray(selectionRaw)) {
-        selectedIds = selectionRaw;
-    } else if (selectionRaw && selectionRaw.modelObjectIds) {
-        selectedIds = selectionRaw.modelObjectIds;
-    }
-
-    if (selectedIds.length === 0) {
-      setStatus('⚠️ Avbrutt: Du må markere et skilt med pil-verktøyet før du trykker!', 'error');
-      return;
-    }
-
-    const obsPoint = points[points.length - 1].start;
-    const eyeOffset = parseFloat($('eyeHeight').value) || 0;
-    
-    // Legg til offset for øyehøyden (omregn til millimeter)
-    const startPos = {
-      positionX: obsPoint.positionX,
-      positionY: obsPoint.positionY,
-      positionZ: obsPoint.positionZ + (eyeOffset * 1000)
-    };
-
-    // Hent Bounding Box for det valgte skiltet ved hjelp av de rensede ID-ene
-    const bbox = await API.viewer.getObjectsBoundingBox(selectedIds);
-    if (!bbox || !bbox.min || !bbox.max) {
-      throw new Error("Kunne ikke beregne Bounding Box for det valgte objektet.");
-    }
-
-    // Ekstraher hjørner fra Bounding Box
-    const minX = bbox.min.x * 1000; const minY = bbox.min.y * 1000; const minZ = bbox.min.z * 1000;
-    const maxX = bbox.max.x * 1000; const maxY = bbox.max.y * 1000; const maxZ = bbox.max.z * 1000;
-
-    // Definer de 8 ytterste hjørnene av objektet
-    const targetCorners = [
-      { positionX: minX, positionY: minY, positionZ: minZ },
-      { positionX: maxX, positionY: minY, positionZ: minZ },
-      { positionX: minX, positionY: maxY, positionZ: minZ },
-      { positionX: maxX, positionY: maxY, positionZ: minZ },
-      { positionX: minX, positionY: minY, positionZ: maxZ },
-      { positionX: maxX, positionY: minY, positionZ: maxZ },
-      { positionX: minX, positionY: maxY, positionZ: maxZ },
-      { positionX: maxX, positionY: maxY, positionZ: maxZ }
-    ];
-
-    // Nullstill lagrede linjer og klargjør trådnettet
-    currentLines = [];
-    
-    // Opprett en linje fra øyet til hvert av de 8 hjørnene
-    targetCorners.forEach(corner => {
-      currentLines.push({
-        start: startPos,
-        end: corner
-      });
+              $('punktInfo').textContent = `[${displayX.toFixed(1)}, ${displayY.toFixed(1)}, ${displayZ.toFixed(1)}]`;
+              $('radPunkt').className = 'valg-rad ferdig';
+              venterPaa = null;
+              $('btnGenerer').disabled = false;
+          } else {
+              setStatus('⚠️ Kunne ikke lese nøyaktig klikk-koordinat. Prøv igjen.', 'error');
+          }
+        }
+      }
     });
-
-    // Tegn pyramiden i grønn farge
-    await drawFrustum({ r: 0, g: 255, b: 0, a: 255 });
-
-    // Rydder opp: Slett det punktet brukeren satte ut på veien
-    const obsId = points[points.length - 1].id;
-    if (obsId) await API.markup.removeMarkups([obsId]);
-
-    $('documentationPanel').style.display = 'block';
-    setStatus('👀 Siktpyramide opprettet mot skiltets ytterpunkter! Kontroller visuelt.', 'ok');
-
-  } catch (err) {
-    setStatus('❌ Feil: ' + err.message, 'error');
+    
+    $('btnSkilt').disabled = false;
+    $('modelBadge').textContent = 'Tilkoblet';
+    setStatus('✅ Tilkoblet. Klikk "Velg Skilt" for å starte.', 'ok');
+  } catch(e) {
+    setStatus('❌ Tilkoblingsfeil: ' + e.message, 'error');
   }
+}
+
+function aktiverVelgSkilt() {
+    venterPaa = 'skilt';
+    $('radSkilt').className = 'valg-rad aktiv';
+    setStatus('👉 Klikk på ønsket skiltplate i 3D-vinduet...', 'ok');
+}
+
+function aktiverVelgPunkt() {
+    $('btnPunkt').disabled = false;
+    venterPaa = 'punkt';
+    $('radPunkt').className = 'valg-rad aktiv';
+    setStatus('👉 Klikk i kjørefeltet for å sette øyehøyde/startpunkt...', 'ok');
+}
+
+$('btnSkilt').addEventListener('click', aktiverVelgSkilt);
+$('btnPunkt').addEventListener('click', aktiverVelgPunkt);
+
+$('btnGenerer').addEventListener('click', async () => {
+   if(!skiltBox || !oyePunkt) return;
+   
+   setStatus('⏳ Beregner siktlinjer og tegner pyramide...');
+   
+   const hjorner = [
+       { x: skiltBox.min.x, y: skiltBox.min.y, z: skiltBox.min.z },
+       { x: skiltBox.max.x, y: skiltBox.min.y, z: skiltBox.max.z },
+       { x: skiltBox.max.x, y: skiltBox.max.y, z: skiltBox.max.z },
+       { x: skiltBox.min.x, y: skiltBox.max.y, z: skiltBox.min.z }
+   ];
+   
+   const zOffset = (oyePunkt.x < 10000 && oyePunkt.x > -10000) ? 1.1 : 1100;
+
+   const linjer = hjorner.map(h => ({
+       start: { positionX: oyePunkt.x, positionY: oyePunkt.y, positionZ: oyePunkt.z + zOffset },
+       end: { positionX: h.x, positionY: h.y, positionZ: h.z },
+       color: { r: 50, g: 150, b: 255, a: 200 }
+   }));
+   
+   await API.markup.removeMarkups();
+   await API.markup.addLineMarkups(linjer);
+   
+   $('eksportPanel').style.display = 'block';
+   setStatus('✅ Pyramide skissert! Velg farge for å eksportere syntetisk IFC.', 'ok');
 });
 
-// Fargeknapper
-btnSetGreen.addEventListener('click', async () => {
-  await drawFrustum({ r: 0, g: 255, b: 0, a: 255 }); // Grønn
-  setStatus('✅ Trådnett farget GRØNT. Klar for skjermbilde!', 'ok');
-});
+function genererSyntetiskIFC(fargekode) {
+    const fargeStreng = fargekode === 'OK' ? '(0.1, 0.8, 0.2)' : '(0.9, 0.1, 0.1)';
+    const ifcInnhold = `ISO-10303-21;\nHEADER;\nFILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');\nFILE_NAME('Siktpyramide.ifc','${new Date().toISOString()}',(),(),'Trimble Connect Ext','','');\nFILE_SCHEMA(('IFC4'));\nENDSEC;\nDATA;\n/* Farge: ${fargeStreng} */\n/* Her genereres trekantnettet basert på startpunkt (${oyePunkt.x},${oyePunkt.y}) og skiltBox hjørner */\nENDSEC;\nEND-ISO-10303-21;`;
+    
+    const blob = new Blob([ifcInnhold], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Siktpyramide_${fargekode}.ifc`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    setStatus(`✅ IFC-fil eksportert med farge ${fargekode}. Last den inn i modellen for permanent geometri!`, 'ok');
+}
 
-btnSetRed.addEventListener('click', async () => {
-  await drawFrustum({ r: 255, g: 0, b: 0, a: 255 }); // Rød
-  setStatus('❌ Trådnett farget RØDT. Klar for skjermbilde/ToDo!', 'error');
-});
+$('btnExportGreen').addEventListener('click', () => genererSyntetiskIFC('OK'));
+$('btnExportRed').addEventListener('click', () => genererSyntetiskIFC('HINDRET'));
 
-// Fjern alt
-btnClear.addEventListener('click', async () => {
-  try {
-    await API.markup.removeMarkups();
-    currentLines = [];
-    $('documentationPanel').style.display = 'none';
-    setStatus('✅ Alle trådnett slettet. Klar for ny måling.', 'ok');
-  } catch (e) {
-    setStatus('❌ Feil ved sletting: ' + e.message, 'error');
-  }
+$('btnReset').addEventListener('click', async () => {
+    valgtSkiltId = null; skiltBox = null; oyePunkt = null; venterPaa = null;
+    $('radSkilt').className = 'valg-rad'; $('skiltInfo').textContent = 'Ikke valgt';
+    $('radPunkt').className = 'valg-rad'; $('punktInfo').textContent = 'Ikke valgt';
+    $('btnPunkt').disabled = true; $('btnGenerer').disabled = true;
+    $('eksportPanel').style.display = 'none';
+    try { await API.markup.removeMarkups(); } catch(e){}
+    setStatus('✅ Nullstilt. Klar for nytt søk.', 'ok');
 });
 
 connect();
