@@ -91,35 +91,46 @@ let valgtSkiltId = null;
 let skiltBox = null;
 let oyePunkt = null;
 let venterPaa = null;
+let liveScanner = null;
 
 const $ = id => document.getElementById(id);
 const setStatus = (m, c='') => { $('statusBar').textContent = m; $('statusBar').className = c; };
 
 async function connect() {
   try {
-    API = await window.TrimbleConnectWorkspace.connect(window.parent, async (event, payload) => {
-      
-      if (event === "viewer.onSelectionChanged" || event === "viewer.selectionChanged" || event === "selectionChanged") {
-        if (!venterPaa) return;
-        
+    // 1. Enkel tilkobling uten upålitelige event-lyttere
+    API = await window.TrimbleConnectWorkspace.connect(window.parent);
+    
+    $('btnSkilt').disabled = false;
+    $('modelBadge').textContent = 'Tilkoblet';
+    setStatus('✅ Tilkoblet. Klikk "Velg Skilt" for å starte.', 'ok');
+    
+    // 2. Starter Live-skanneren som sjekker 3D-modellen 2 ganger i sekundet
+    liveScanner = setInterval(sjekkUtvalg, 500);
+  } catch(e) {
+    setStatus('❌ Tilkoblingsfeil: ' + e.message, 'error');
+  }
+}
+
+async function sjekkUtvalg() {
+    if (!venterPaa || !API) return;
+    
+    try {
         const utvalg = await API.viewer.getSelection();
         if (!utvalg || utvalg.length === 0) return;
         
         const klikkData = utvalg[0];
         
         if (venterPaa === 'skilt') {
-          // Henter ID fra den nye array-strukturen i API-et
-          valgtSkiltId = (klikkData.objectRuntimeIds && klikkData.objectRuntimeIds[0]) || 
-                         (klikkData.objectIds && klikkData.objectIds[0]) || 
-                         klikkData.objectId || klikkData.id;
+          const funnetId = (klikkData.objectRuntimeIds && klikkData.objectRuntimeIds[0]) || 
+                           (klikkData.objectIds && klikkData.objectIds[0]) || 
+                           klikkData.objectId || klikkData.id;
           
-          if (!valgtSkiltId) {
-              setStatus('⚠️ Fant ingen ID på objektet. Sjekk F12 for feilsøking.', 'error');
-              console.log("Rådata fra utvalg:", klikkData);
-              return;
-          }
+          if (!funnetId) return;
           
-          // Spør etter bounding box basert på den ID-typen vi fant
+          venterPaa = 'behandler'; // Pauser skanneren midlertidig
+          valgtSkiltId = funnetId;
+          
           const requestObj = { modelId: klikkData.modelId };
           if (klikkData.objectRuntimeIds) requestObj.objectRuntimeIds = [valgtSkiltId];
           else requestObj.objectIds = [valgtSkiltId];
@@ -133,14 +144,15 @@ async function connect() {
               venterPaa = null;
               aktiverVelgPunkt();
           } else {
-              setStatus('⚠️ Fant ingen utstrekning (Bounding Box) for dette objektet.', 'error');
+              setStatus('⚠️ Fant ingen utstrekning (Bounding Box). Prøv et annet skilt.', 'error');
+              venterPaa = 'skilt';
           }
           
         } else if (venterPaa === 'punkt') {
-          // Forsøker å fange opp 3D-koordinatet for klikket
           oyePunkt = klikkData.position || (klikkData.point ? klikkData.point : null);
           
           if(oyePunkt) {
+              venterPaa = 'behandler';
               const displayX = (oyePunkt.x < 10000 && oyePunkt.x > -10000) ? oyePunkt.x : (oyePunkt.x / 1000);
               const displayY = (oyePunkt.y < 10000 && oyePunkt.y > -10000) ? oyePunkt.y : (oyePunkt.y / 1000);
               const displayZ = (oyePunkt.z < 10000 && oyePunkt.z > -10000) ? oyePunkt.z : (oyePunkt.z / 1000);
@@ -149,20 +161,12 @@ async function connect() {
               $('radPunkt').className = 'valg-rad ferdig';
               venterPaa = null;
               $('btnGenerer').disabled = false;
-          } else {
-              setStatus('⚠️ Koordinat mangler i dataene fra Trimble. Sjekk F12.', 'error');
-              console.log("Utvalg mangler posisjon:", klikkData);
+              setStatus('✅ Startpunkt registrert. Klar for å generere pyramide.', 'ok');
           }
         }
-      }
-    });
-    
-    $('btnSkilt').disabled = false;
-    $('modelBadge').textContent = 'Tilkoblet';
-    setStatus('✅ Tilkoblet. Klikk "Velg Skilt" for å starte.', 'ok');
-  } catch(e) {
-    setStatus('❌ Tilkoblingsfeil: ' + e.message, 'error');
-  }
+    } catch (err) {
+        console.error("Live-skanner feil:", err);
+    }
 }
 
 function aktiverVelgSkilt() {
