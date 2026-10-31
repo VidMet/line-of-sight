@@ -2,7 +2,7 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8"/>
-  <title>Siktlinje V11 - Interaktiv 3D</title>
+  <title>Siktlinje V12 - Interaktiv 3D</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <style>
@@ -45,7 +45,7 @@
 
 <header>
   <div class="header-title">
-    <h1>Siktlinje V11</h1>
+    <h1>Siktlinje V12</h1>
     <p>Interaktiv raycasting og IFC-siktpyramide</p>
   </div>
   <span class="badge" id="modelBadge">Frakoblet</span>
@@ -97,7 +97,6 @@ const setStatus = (m, c='') => { $('statusBar').textContent = m; $('statusBar').
 
 async function connect() {
   try {
-    // I det nye API-et lytter vi til hendelser HER, inni selve connect-funksjonen
     API = await window.TrimbleConnectWorkspace.connect(window.parent, async (event, payload) => {
       
       if (event === "viewer.onSelectionChanged" || event === "viewer.selectionChanged" || event === "selectionChanged") {
@@ -109,12 +108,23 @@ async function connect() {
         const klikkData = utvalg[0];
         
         if (venterPaa === 'skilt') {
-          valgtSkiltId = klikkData.objectId || klikkData.objectRuntimeId || klikkData.id;
+          // Henter ID fra den nye array-strukturen i API-et
+          valgtSkiltId = (klikkData.objectRuntimeIds && klikkData.objectRuntimeIds[0]) || 
+                         (klikkData.objectIds && klikkData.objectIds[0]) || 
+                         klikkData.objectId || klikkData.id;
           
-          const boxes = await API.viewer.getObjectBoundingBoxes([{
-             modelId: klikkData.modelId,
-             objectRuntimeIds: [valgtSkiltId]
-          }]);
+          if (!valgtSkiltId) {
+              setStatus('⚠️ Fant ingen ID på objektet. Sjekk F12 for feilsøking.', 'error');
+              console.log("Rådata fra utvalg:", klikkData);
+              return;
+          }
+          
+          // Spør etter bounding box basert på den ID-typen vi fant
+          const requestObj = { modelId: klikkData.modelId };
+          if (klikkData.objectRuntimeIds) requestObj.objectRuntimeIds = [valgtSkiltId];
+          else requestObj.objectIds = [valgtSkiltId];
+
+          const boxes = await API.viewer.getObjectBoundingBoxes([requestObj]);
           
           if (boxes && boxes.length > 0) {
               skiltBox = boxes[0].boundingBox;
@@ -122,9 +132,12 @@ async function connect() {
               $('radSkilt').className = 'valg-rad ferdig';
               venterPaa = null;
               aktiverVelgPunkt();
+          } else {
+              setStatus('⚠️ Fant ingen utstrekning (Bounding Box) for dette objektet.', 'error');
           }
           
         } else if (venterPaa === 'punkt') {
+          // Forsøker å fange opp 3D-koordinatet for klikket
           oyePunkt = klikkData.position || (klikkData.point ? klikkData.point : null);
           
           if(oyePunkt) {
@@ -137,7 +150,8 @@ async function connect() {
               venterPaa = null;
               $('btnGenerer').disabled = false;
           } else {
-              setStatus('⚠️ Kunne ikke lese nøyaktig klikk-koordinat. Prøv igjen.', 'error');
+              setStatus('⚠️ Koordinat mangler i dataene fra Trimble. Sjekk F12.', 'error');
+              console.log("Utvalg mangler posisjon:", klikkData);
           }
         }
       }
