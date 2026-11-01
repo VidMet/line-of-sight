@@ -2,7 +2,7 @@
 <html lang="nb">
 <head>
   <meta charset="UTF-8"/>
-  <title>Siktlinje v13.0 - Interaktiv 3D</title>
+  <title>Siktlinje v14.0 - Interaktiv 3D</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <script src="https://components.connect.trimble.com/trimble-connect-workspace-api/index.js"></script>
   <style>
@@ -30,33 +30,40 @@
     .btn-secondary { background: var(--surface2); color: var(--ink); border: 1px solid var(--border); }
     .btn-green { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
     .btn-red { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+    .btn-blue { background: var(--blue-dim); color: var(--blue); border: 1px solid var(--blue); }
+    .btn.aktiv-farge { box-shadow: 0 0 0 2px var(--ink); }
     #statusBar { font-family: var(--mono); font-size: 11px; padding: 7px 16px; background: var(--blue-dim); color: var(--blue); border-bottom: 1px solid var(--border); flex-shrink: 0; line-height: 1.4; }
     #statusBar.ok { background: var(--green-dim); color: var(--green); }
     #statusBar.error { background: var(--red-dim); color: var(--red); }
     #statusBar.warn { background: var(--amber-dim); color: var(--amber); }
-    main { flex: 1 1 auto; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
-    .guide-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+    main { flex: 1 1 auto; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+    .guide-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
     .guide-box h3 { font-size: 13px; color: var(--blue); margin-bottom: 6px; }
     .guide-box ol { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.5; }
-    .guide-box li { margin-bottom: 4px; }
+    .guide-box li { margin-bottom: 3px; }
     .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-    .setting-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-family: var(--mono); padding-bottom: 6px; border-bottom: 1px solid var(--border); }
-    .setting-row input { font-family: var(--mono); font-size: 12px; width: 65px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); }
+    .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .input-field { display: flex; flex-direction: column; gap: 4px; }
+    .input-field label { font-size: 11px; font-family: var(--mono); color: var(--muted); }
+    .input-field input { font-family: var(--mono); font-size: 13px; font-weight: 600; width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--ink); }
+    .check-row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-family: var(--mono); color: var(--muted); padding-bottom: 6px; border-bottom: 1px solid var(--border); }
     .valg-rad { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg); border: 1px dashed var(--border); border-radius: 6px; font-size: 12px; }
     .valg-rad.aktiv { border-color: var(--blue); background: var(--blue-dim); border-style: solid; }
     .valg-rad.ferdig { border-style: solid; border-color: var(--green); background: var(--green-dim); }
     .btn-group { display: flex; gap: 6px; }
-    .info-kort { display: flex; gap: 8px; margin-top: 6px; }
-    .dist-box { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; text-align: center; font-family: var(--mono); font-size: 12px; }
-    .dist-box b { font-size: 16px; color: var(--blue); }
+    .info-kort { display: flex; gap: 8px; }
+    .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .metric-box { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; text-align: center; font-family: var(--mono); font-size: 11px; }
+    .metric-box b { display: block; font-size: 14px; color: var(--blue); margin-top: 2px; }
+    .divider { height: 1px; background: var(--border); margin: 4px 0; }
   </style>
 </head>
 <body>
 
 <header>
   <div class="header-title">
-    <h1>Siktlinje <span class="badge badge-ver">v13.0</span></h1>
-    <p>Interaktiv siktpyramide og IFC-eksport</p>
+    <h1>Siktlinje <span class="badge badge-ver">v14.0</span></h1>
+    <p>Automatisk siktpyramide i 3D fra siktkrav & øyehøyde</p>
   </div>
   <span class="badge" id="modelBadge">Frakoblet</span>
 </header>
@@ -65,46 +72,71 @@
 
 <main id="mainContent">
   <div class="guide-box">
-    <h3>Slik sjekker du sikten:</h3>
+    <h3>Arbeidsflyt:</h3>
     <ol>
-      <li>Trykk <b>Velg Skilt</b> og klikk på en skiltplate i 3D-modellen (eller klikk skiltet først).</li>
-      <li>Trykk <b>Velg Siktpunkt</b> og klikk på kjørefeltet i 3D, sett ut en <i>Punktmåling</i>, eller bruk <b>🎯 Kamera</b>.</li>
-      <li>Trykk <b>Generer Siktpyramide</b> og eksporter grønn eller rød IFC-modell.</li>
+      <li>Angi <b>Øyehøyde (m)</b> og ønsket <b>Siktkrav (m)</b> i feltene under.</li>
+      <li>Klikk på en <b>skiltflate</b> i 3D-modellen.</li>
+      <li>Klikk deretter på <b>kjørefelt-flaten</b> i den retningen skiltet skal ses fra. Utvidelsen beregner siktepunktet og tegner pyramiden direkte i 3D!</li>
     </ol>
   </div>
 
   <div class="panel">
-    <div class="setting-row">
-      <label for="eyeHeight">Øyehøyde over kjørebane (m):</label>
-      <input type="number" id="eyeHeight" value="1.1" step="0.1"/>
+    <div class="input-grid">
+      <div class="input-field">
+        <label for="eyeHeight">Øyehøyde over flate (m):</label>
+        <input type="number" id="eyeHeight" value="1.10" step="0.05"/>
+      </div>
+      <div class="input-field">
+        <label for="sightReq">Siktkrav / lengde (m):</label>
+        <input type="number" id="sightReq" value="100" step="5" min="0" title="Sett til 0 hvis du vil bruke eksakt klikkpunkt uten fast siktkrav"/>
+      </div>
+    </div>
+
+    <div class="check-row">
+      <label for="chkSurfaceFill">Tett 3D-flateskravur på pyramide i visning:</label>
+      <input type="checkbox" id="chkSurfaceFill" checked style="width:16px; height:16px; cursor:pointer;"/>
     </div>
 
     <div class="valg-rad" id="radSkilt">
-      <span style="overflow:hidden; text-overflow:ellipsis;">1. Målskilt: <b id="skiltInfo">Ikke valgt</b></span>
+      <span style="overflow:hidden; text-overflow:ellipsis;">1. Skiltflate: <b id="skiltInfo">Ikke valgt</b></span>
       <button class="btn btn-secondary" id="btnSkilt" disabled>Velg Skilt</button>
     </div>
 
     <div class="valg-rad" id="radPunkt">
-      <span style="overflow:hidden; text-overflow:ellipsis;">2. Øyepunkt: <b id="punktInfo">Ikke valgt</b></span>
+      <span style="overflow:hidden; text-overflow:ellipsis;">2. Kjørefelt / flate: <b id="punktInfo">Ikke valgt</b></span>
       <div class="btn-group">
-        <button class="btn btn-secondary" id="btnPunkt" disabled>Velg Siktpunkt</button>
-        <button class="btn btn-secondary" id="btnKameraPunkt" title="Bruk 3D-visningens senterpunkt (lookAt)" disabled>🎯 Kamera</button>
+        <button class="btn btn-secondary" id="btnPunkt" disabled>Velg Flate</button>
+        <button class="btn btn-secondary" id="btnFlipDir" title="Snu siktretningen 180 grader langs vegen" disabled>⇄ Snu</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="resultatPanel" style="display: none; border-color: var(--blue);">
+    <h3 style="font-size: 13px; text-align: center;">Beregnet Siktpyramide i 3D-visning</h3>
+
+    <div class="metrics-grid">
+      <div class="metric-box">
+        Siktlengde (horisontal)
+        <b id="valDist">- m</b>
+      </div>
+      <div class="metric-box">
+        Flatehøyde → Siktehøyde
+        <b id="valHeights">-</b>
       </div>
     </div>
 
-    <button class="btn btn-primary" id="btnGenerer" disabled>▶ Generer Siktpyramide</button>
-  </div>
-
-  <div class="panel" id="eksportPanel" style="display: none; border-color: var(--blue);">
-    <h3 style="font-size: 13px; text-align: center;">Dokumenter Siktpyramide (3D & IFC)</h3>
-    <div class="dist-box">
-      Siktlengde: <b id="valDist">-</b> meter
+    <div style="font-size: 11px; font-family: var(--mono); color: var(--muted); text-align: center; margin-top: 2px;">
+      Velg farge direkte i 3D-visningen:
     </div>
     <div class="info-kort">
-      <button class="btn btn-green" id="btnExportGreen" style="flex:1;">✅ Sikt OK (Grønn IFC)</button>
-      <button class="btn btn-red" id="btnExportRed" style="flex:1;">❌ Hindret (Rød IFC)</button>
+      <button class="btn btn-green aktiv-farge" id="btnColorGreen" style="flex:1;">🟢 Sikt OK (Grønn)</button>
+      <button class="btn btn-red" id="btnColorRed" style="flex:1;">🔴 Hindret (Rød)</button>
     </div>
-    <button class="btn btn-secondary" id="btnReset" style="margin-top: 6px; width: 100%;">🗑 Nullstill</button>
+
+    <div class="divider"></div>
+
+    <button class="btn btn-primary" id="btnExportIFC">💾 Eksporter pyramide til IFC-fil (.ifc)</button>
+    <button class="btn btn-secondary" id="btnReset" style="width: 100%;">🗑 Nullstill og fjern fra visning</button>
   </div>
 </main>
 
@@ -112,18 +144,27 @@
 let API = null;
 let valgtSkiltId = null;
 let valgtSkiltKey = null;
-let skiltBox = null; // Lagres alltid i METER: { min: {x,y,z}, max: {x,y,z} }
-let oyePunkt = null; // Lagres alltid i METER: { x, y, z }
-let venterPaa = null; // 'skilt' | 'punkt' | null
+let skiltBox = null;        // I meter: { min:{x,y,z}, max:{x,y,z} }
+
+let valgtFlateObj = null;   // { modelId, runtimeId, box }
+let klikkRefPunkt = null;   // Referansepunkt fra klikk/kamera på flaten: { x, y, z }
+let retningFaktor = 1;      // 1 = mot valgt flate/kamera, -1 = snudd 180 grader
+
+let beregnetFlatePunkt = null; // { x, y, z } på selve kjørefelt-flaten (før øyehøyde)
+let oyePunkt = null;           // { x, y, z } inkludert øyehøyde over flaten
+let aktivStatus = 'OK';        // 'OK' (Grønn) eller 'HINDRET' (Rød)
+
+let venterPaa = null;       // 'skilt' | 'punkt' | null
 let isBusy = false;
 let sisteSelectionKey = '';
 let sisteMarkupCount = 0;
-let sisteKameraLookAt = null;
+let sisteKamera = null;
+let modellBoksCache = {};   // modelId -> [{ id, box }] for eksakt lokal flatehøyde langs vegen
 
 const $ = id => document.getElementById(id);
 const setStatus = (m, c='') => { $('statusBar').textContent = m; $('statusBar').className = c; };
 
-// Hjelpefunksjon: Konverterer en bounding box til METER dersom den kommer i millimeter
+// Konverterer en bounding box til METER dersom den kommer i millimeter
 function normaliserBoxTilMeter(rawBox) {
   const b = rawBox.boundingBox || rawBox;
   if (!b || !b.min || !b.max) return null;
@@ -131,7 +172,6 @@ function normaliserBoxTilMeter(rawBox) {
   const dy = Math.abs(b.max.y - b.min.y);
   const dz = Math.abs(b.max.z - b.min.z);
   const diag = Math.sqrt(dx*dx + dy*dy + dz*dz);
-  // Hvis diagonalen på et enkeltobjekt er > 500 og Z-verdi > 3000, er tallene i millimeter
   const faktor = (diag > 500 && Math.abs(b.max.z) > 3000) ? 0.001 : 1.0;
   return {
     min: { x: b.min.x * faktor, y: b.min.y * faktor, z: b.min.z * faktor },
@@ -139,29 +179,51 @@ function normaliserBoxTilMeter(rawBox) {
   };
 }
 
-// Hjelpefunksjon: Henter BoundingBox skuddsikkert på tvers av API-versjoner
 async function hentObjektBoks(modelId, runtimeId) {
   const numId = Number(runtimeId);
   try {
-    // Korrekt signatur i Trimble Connect Workspace API: (modelId, [runtimeId])
     const res1 = await API.viewer.getObjectBoundingBoxes(modelId, [numId]);
     if (res1 && res1.length > 0) {
       const norm = normaliserBoxTilMeter(res1[0]);
       if (norm) return norm;
     }
-  } catch (e) {
-    console.warn("getObjectBoundingBoxes(modelId, [id]) feilet, prøver fallback:", e);
-  }
+  } catch (e) {}
   try {
     const res2 = await API.viewer.getObjectBoundingBoxes([{ modelId: modelId, objectRuntimeIds: [numId] }]);
     if (res2 && res2.length > 0) {
       const norm = normaliserBoxTilMeter(res2[0]);
       if (norm) return norm;
     }
-  } catch (e2) {
-    console.warn("Fallback getObjectBoundingBoxes feilet også:", e2);
-  }
+  } catch (e2) {}
   return null;
+}
+
+// Henter og mellomlagrer bounding boxes i den aktuelle modellen for å finne lokal flatehøyde langs vegen
+async function hentEllerByggModellCache(modelId) {
+  if (modellBoksCache[modelId]) return modellBoksCache[modelId];
+  const liste = [];
+  try {
+    const models = await API.viewer.getObjects();
+    const targetModel = (models || []).find(m => (m.modelId || m.modelid) === modelId);
+    if (targetModel && targetModel.objects) {
+      const ids = targetModel.objects.map(o => Number(o.id || o.objectRuntimeId)).filter(id => !isNaN(id));
+      const CHUNK = 250;
+      for (let i = 0; i < Math.min(ids.length, 1500); i += CHUNK) {
+        const chunk = ids.slice(i, i + CHUNK);
+        const boxes = await API.viewer.getObjectBoundingBoxes(modelId, chunk);
+        if (boxes && boxes.length > 0) {
+          boxes.forEach((b, idx) => {
+            const norm = normaliserBoxTilMeter(b);
+            if (norm) liste.push({ id: b.id || chunk[idx], box: norm });
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Kunne ikke bygge hurtigbuffer for modell:", e);
+  }
+  modellBoksCache[modelId] = liste;
+  return liste;
 }
 
 function trekkUtValgtObjekt(utvalg) {
@@ -171,10 +233,24 @@ function trekkUtValgtObjekt(utvalg) {
                 (item.objectIds && item.objectIds[0]) ||
                 item.objectRuntimeId || item.objectId || item.id;
     if (rId !== undefined && rId !== null) {
-      return { modelId: item.modelId, runtimeId: rId, key: `${item.modelId}_${rId}`, raw: item };
+      return { modelId: item.modelId, runtimeId: rId, key: `${item.modelId}_${rId}` };
     }
   }
   return null;
+}
+
+async function oppdaterKameraCache() {
+  try {
+    const cam = await API.viewer.getCamera();
+    if (cam && cam.position) {
+      const f = (Math.abs(cam.position.z) > 3000) ? 0.001 : 1.0;
+      const look = cam.lookAt || cam.target || cam.position;
+      sisteKamera = {
+        pos: { x: cam.position.x * f, y: cam.position.y * f, z: cam.position.z * f },
+        look: { x: look.x * f, y: look.y * f, z: look.z * f }
+      };
+    }
+  } catch (e) {}
 }
 
 async function connect() {
@@ -182,39 +258,41 @@ async function connect() {
     API = await window.TrimbleConnectWorkspace.connect(window.parent, (event, payload) => {
       if (event === "viewer.onCameraChanged" || event === "viewer.cameraChanged" || event === "cameraChanged") {
         const cam = (payload && payload.data) ? payload.data : payload;
-        if (cam && (cam.lookAt || cam.target)) {
-          sisteKameraLookAt = cam.lookAt || cam.target;
+        if (cam && cam.position) {
+          const f = (Math.abs(cam.position.z) > 3000) ? 0.001 : 1.0;
+          const look = cam.lookAt || cam.target || cam.position;
+          sisteKamera = {
+            pos: { x: cam.position.x * f, y: cam.position.y * f, z: cam.position.z * f },
+            look: { x: look.x * f, y: look.y * f, z: look.z * f }
+          };
         }
       }
     });
 
     $('btnSkilt').disabled = false;
     $('btnPunkt').disabled = false;
-    $('btnKameraPunkt').disabled = false;
     $('modelBadge').textContent = 'Tilkoblet';
-    setStatus('✅ Tilkoblet (v13.0). Klikk "Velg Skilt" eller marker en skiltplate i 3D.', 'ok');
+    setStatus('✅ Tilkoblet (v14.0). Klikk på en skiltflate i 3D-modellen.', 'ok');
 
-    // Nullstill markups-teller ved oppstart
     try {
       const pts = await API.markup.getSinglePointMarkups();
       sisteMarkupCount = pts ? pts.length : 0;
     } catch (e) {}
 
-    // Start i skilt-modus automatisk
+    await oppdaterKameraCache();
     aktiverVelgSkilt(false);
-
-    // Live-skanner hvert 450 ms
-    setInterval(sjekkUtvalg, 450);
+    setInterval(sjekkUtvalg, 400);
   } catch (e) {
     setStatus('❌ Tilkoblingsfeil: ' + e.message, 'error');
   }
 }
 
+// Steg 1: Registrer valgt skiltplate
 async function registrerSkilt(obj) {
-  setStatus(`⏳ Henter geometri for skilt (ID: ${obj.runtimeId})...`, 'warn');
+  setStatus(`⏳ Leser skiltgeometri (ID: ${obj.runtimeId})...`, 'warn');
   const box = await hentObjektBoks(obj.modelId, obj.runtimeId);
   if (!box) {
-    setStatus(`⚠️ Fant ikke 3D-utstrekning for objekt ${obj.runtimeId}. Prøv å klikke direkte på selve skiltplaten.`, 'error');
+    setStatus(`⚠️ Fant ikke 3D-utstrekning for objekt ${obj.runtimeId}.`, 'error');
     return false;
   }
   valgtSkiltId = obj.runtimeId;
@@ -224,29 +302,186 @@ async function registrerSkilt(obj) {
 
   $('skiltInfo').textContent = `ID ${valgtSkiltId}`;
   $('radSkilt').className = 'valg-rad ferdig';
-  oppdaterGenererKnapp();
 
-  // Gå automatisk videre til valg av siktpunkt hvis det ikke er valgt ennå
-  if (!oyePunkt) {
-    await aktiverVelgPunkt(false);
-  } else {
+  if (valgtFlateObj || klikkRefPunkt) {
     venterPaa = null;
-    setStatus('✅ Skilt oppdatert! Klar til å generere siktpyramide.', 'ok');
+    await beregnOgTegnAlt();
+  } else {
+    await aktiverVelgPunkt(false);
   }
   return true;
 }
 
-function registrerOyePunkt(pktMeter, kildeTekst) {
-  oyePunkt = { x: pktMeter.x, y: pktMeter.y, z: pktMeter.z };
-  $('punktInfo').textContent = `[${oyePunkt.x.toFixed(1)}, ${oyePunkt.y.toFixed(1)}, ${oyePunkt.z.toFixed(1)}]`;
-  $('radPunkt').className = 'valg-rad ferdig';
-  venterPaa = null;
-  oppdaterGenererKnapp();
-  setStatus(`✅ Siktpunkt satt (${kildeTekst}). Trykk "Generer Siktpyramide"!`, 'ok');
+// Beregner flatehøyde Z på kjørefeltet i punktet (x, y)
+async function beregnFlateHoydeIPunkt(x, y, vegObj, refPunkt) {
+  // 1. Hvis vi ikke bruker siktkrav (0 m) og har eksakt treffpunkt fra punktmåling
+  const siktKrav = parseFloat($('sightReq').value) || 0;
+  if (siktKrav <= 0 && refPunkt && refPunkt.erEksaktPunkt) {
+    return refPunkt.z;
+  }
+
+  if (!vegObj || !vegObj.box) {
+    return refPunkt ? refPunkt.z : (skiltBox ? skiltBox.min.z - 2.0 : 0);
+  }
+
+  const vb = vegObj.box;
+  const dz = vb.max.z - vb.min.z;
+
+  // 2. Hvis den klikkede vegflaten har moderat høydeforskjell (< 1.2 m), bruk flatens topp/middel direkte
+  if (dz < 1.2 && x >= vb.min.x - 5 && x <= vb.max.x + 5 && y >= vb.min.y - 5 && y <= vb.max.y + 5) {
+    return (vb.min.z + vb.max.z) / 2;
+  }
+
+  // 3. Sjekk lokale veg- eller utstyrsobjekter i modellen rundt (x, y) for presis lokal kote
+  const cache = await hentEllerByggModellCache(vegObj.modelId);
+  let besteLokaleZ = null;
+  let minHoydeSpenn = 9999;
+
+  for (const item of cache) {
+    const b = item.box;
+    if (x >= b.min.x - 2.0 && x <= b.max.x + 2.0 && y >= b.min.y - 2.0 && y <= b.max.y + 2.0) {
+      const spenn = b.max.z - b.min.z;
+      // Velg objekter som utgjør flate/kant i vegen (høydespenn < 3.5 m)
+      if (spenn < 3.5 && spenn < minHoydeSpenn) {
+        minHoydeSpenn = spenn;
+        besteLokaleZ = (b.min.z + b.max.z) / 2;
+      }
+    }
+  }
+  if (besteLokaleZ !== null) return besteLokaleZ;
+
+  // 4. Lineær interpolasjon langs den klikkede vegflaten (mellom skiltet og siktepunktet)
+  const sx = (skiltBox.min.x + skiltBox.max.x) / 2;
+  const sy = (skiltBox.min.y + skiltBox.max.y) / 2;
+  // Estimert vegkote ved skiltet (enten fra lokale objekter ved skiltet eller skiltets underkant - 2.0m)
+  let zVedSkilt = Math.max(vb.min.z, Math.min(vb.max.z, skiltBox.min.z - 2.0));
+  for (const item of cache) {
+    const b = item.box;
+    if (sx >= b.min.x - 4.0 && sx <= b.max.x + 4.0 && sy >= b.min.y - 4.0 && sy <= b.max.y + 4.0) {
+      if ((b.max.z - b.min.z) < 3.0) {
+        zVedSkilt = b.min.z;
+        break;
+      }
+    }
+  }
+
+  // Hvis refPunkt (fra kamerasenter/klikk) har en gyldig høyde inne i vegBox, interpoler via den
+  if (refPunkt && refPunkt.z >= vb.min.z - 1 && refPunkt.z <= vb.max.z + 1) {
+    const distRef = Math.hypot(refPunkt.x - sx, refPunkt.y - sy);
+    const distPkt = Math.hypot(x - sx, y - sy);
+    if (distRef > 5) {
+      const helning = (refPunkt.z - zVedSkilt) / distRef;
+      const interpZ = zVedSkilt + helning * distPkt;
+      return Math.max(vb.min.z, Math.min(vb.max.z, interpZ));
+    }
+  }
+
+  // Fallback: Interpoler langs vegBox sin lengste horisontale akse
+  const dx = Math.max(0.1, vb.max.x - vb.min.x);
+  const dy = Math.max(0.1, vb.max.y - vb.min.y);
+  const t = (dx >= dy) ? (x - vb.min.x) / dx : (y - vb.min.y) / dy;
+  const tSkilt = (dx >= dy) ? (sx - vb.min.x) / dx : (sy - vb.min.y) / dy;
+  const skiltErNermestMaxZ = Math.abs(zVedSkilt - vb.max.z) < Math.abs(zVedSkilt - vb.min.z);
+  const tEff = Math.max(0, Math.min(1, ((t - tSkilt) >= 0) ? t : 1 - t));
+  return skiltErNermestMaxZ ? (vb.max.z - tEff * dz) : (vb.min.z + tEff * dz);
 }
 
-function oppdaterGenererKnapp() {
-  $('btnGenerer').disabled = !(skiltBox && oyePunkt);
+// Hovedfunksjon som beregner siktepunktet på flaten ut fra Siktkrav (m) og Øyehøyde (m), og tegner i 3D
+async function beregnOgTegnAlt() {
+  if (!skiltBox || (!valgtFlateObj && !klikkRefPunkt)) return;
+
+  const eyeOffset = parseFloat($('eyeHeight').value) || 0;
+  const siktKrav = parseFloat($('sightReq').value) || 0;
+
+  const sx = (skiltBox.min.x + skiltBox.max.x) / 2;
+  const sy = (skiltBox.min.y + skiltBox.max.y) / 2;
+
+  // Finn kjørefeltets startpunkt på tvers av skiltet (P0) og retning langs kjørefeltet
+  let p0x = sx, p0y = sy;
+  let dirX = 0, dirY = -1;
+
+  if (valgtFlateObj && valgtFlateObj.box) {
+    const vb = valgtFlateObj.box;
+    const vcx = (vb.min.x + vb.max.x) / 2;
+    const vcy = (vb.min.y + vb.max.y) / 2;
+    const xyDiag = Math.hypot(vb.max.x - vb.min.x, vb.max.y - vb.min.y);
+
+    // Klem skiltets posisjon inn i kjørefelt-flatens bredde for å finne kjørefeltets posisjon ved skiltet
+    p0x = Math.max(vb.min.x, Math.min(vb.max.x, sx));
+    p0y = Math.max(vb.min.y, Math.min(vb.max.y, sy));
+
+    // Hvis flaten er et eget segment et stykke unna skiltet, peker vektoren fra skiltet til segmentet
+    const distTilSegment = Math.hypot(vcx - sx, vcy - sy);
+    if (xyDiag < 45 && distTilSegment > 5) {
+      dirX = vcx - p0x;
+      dirY = vcy - p0y;
+    } else if (klikkRefPunkt) {
+      // Lang vegflate: Bruk retningen fra skiltet mot kameraposisjon / klikkpunkt langs vegen
+      dirX = klikkRefPunkt.x - sx;
+      dirY = klikkRefPunkt.y - sy;
+    } else {
+      dirX = vcx - sx;
+      dirY = vcy - sy;
+    }
+  } else if (klikkRefPunkt) {
+    dirX = klikkRefPunkt.x - sx;
+    dirY = klikkRefPunkt.y - sy;
+  }
+
+  const dirLen = Math.hypot(dirX, dirY) || 1;
+  let ux = (dirX / dirLen) * retningFaktor;
+  let uy = (dirY / dirLen) * retningFaktor;
+
+  let sluttX, sluttY;
+
+  if (siktKrav > 0) {
+    // Regn ut punkt langs kjørefeltet som gir eksakt horisontal avstand = siktKrav fra skiltets senter
+    const d0x = p0x - sx;
+    const d0y = p0y - sy;
+    const d0Sq = d0x * d0x + d0y * d0y;
+
+    if (d0Sq < siktKrav * siktKrav) {
+      const bProj = d0x * ux + d0y * uy;
+      const t = -bProj + Math.sqrt(Math.max(0, bProj * bProj + siktKrav * siktKrav - d0Sq));
+      sluttX = p0x + ux * t;
+      sluttY = p0y + uy * t;
+    } else {
+      sluttX = sx + ux * siktKrav;
+      sluttY = sy + uy * siktKrav;
+    }
+
+    // Hvis det finnes et vegsegment i modellen ved (sluttX, sluttY), sentrer pent på vegflaten
+    if (valgtFlateObj && valgtFlateObj.box) {
+      const vb = valgtFlateObj.box;
+      // Hold punktet innenfor vegflatens yttergrenser hvis det er én stor flate
+      if (sluttX >= vb.min.x - 15 && sluttX <= vb.max.x + 15 &&
+          sluttY >= vb.min.y - 15 && sluttY <= vb.max.y + 15) {
+        sluttX = Math.max(vb.min.x + 0.5, Math.min(vb.max.x - 0.5, sluttX));
+        sluttY = Math.max(vb.min.y + 0.5, Math.min(vb.max.y - 0.5, sluttY));
+      }
+      // Justér lengden langs siktlinjen så horisontalavstanden til skiltet er eksakt lik siktKrav
+      const vx = sluttX - sx;
+      const vy = sluttY - sy;
+      const vLen = Math.hypot(vx, vy) || 1;
+      sluttX = sx + (vx / vLen) * siktKrav;
+      sluttY = sy + (vy / vLen) * siktKrav;
+    }
+  } else {
+    // Siktkrav = 0: Bruk selve klikkpunktet på flaten
+    sluttX = klikkRefPunkt ? klikkRefPunkt.x : p0x;
+    sluttY = klikkRefPunkt ? klikkRefPunkt.y : p0y;
+  }
+
+  // Finn flatehøyden Z på kjørefeltet i det beregnede punktet og legg på øyehøyden
+  const flateZ = await beregnFlateHoydeIPunkt(sluttX, sluttY, valgtFlateObj, klikkRefPunkt);
+  beregnetFlatePunkt = { x: sluttX, y: sluttY, z: flateZ };
+  oyePunkt = { x: sluttX, y: sluttY, z: flateZ + eyeOffset };
+
+  $('punktInfo').textContent = `Flate Z=${flateZ.toFixed(2)}m (+${eyeOffset.toFixed(2)}m)`;
+  $('radPunkt').className = 'valg-rad ferdig';
+  $('btnFlipDir').disabled = false;
+
+  await tegnPyramideDirekteI3D();
 }
 
 async function sjekkUtvalg() {
@@ -254,7 +489,7 @@ async function sjekkUtvalg() {
   isBusy = true;
 
   try {
-    // 1. Sjekk om brukeren har satt ut en ny Punktmåling (Måleverktøy) når vi venter på punkt
+    // 1. Sjekk om brukeren har satt en Punktmåling på flaten
     if (venterPaa === 'punkt') {
       try {
         const pts = await API.markup.getSinglePointMarkups();
@@ -262,12 +497,15 @@ async function sjekkUtvalg() {
           sisteMarkupCount = pts.length;
           const p = pts[pts.length - 1].start;
           if (p && p.positionX !== undefined) {
-            // Punktmålinger fra API.markup er alltid i millimeter
-            registrerOyePunkt({
+            klikkRefPunkt = {
               x: p.positionX / 1000,
               y: p.positionY / 1000,
-              z: p.positionZ / 1000
-            }, 'fra punktmåling');
+              z: p.positionZ / 1000,
+              erEksaktPunkt: true
+            };
+            retningFaktor = 1;
+            venterPaa = null;
+            await beregnOgTegnAlt();
             return;
           }
         } else if (pts) {
@@ -276,7 +514,7 @@ async function sjekkUtvalg() {
       } catch (e) {}
     }
 
-    // 2. Sjekk markering i 3D-visningen
+    // 2. Sjekk vanlig klikk på objekt/flate i 3D-visningen
     const utvalg = await API.viewer.getSelection();
     const obj = trekkUtValgtObjekt(utvalg);
     if (!obj || obj.key === sisteSelectionKey) return;
@@ -286,42 +524,36 @@ async function sjekkUtvalg() {
     if (venterPaa === 'skilt') {
       await registrerSkilt(obj);
     } else if (venterPaa === 'punkt') {
-      if (obj.key === valgtSkiltKey) return; // Ignorer hvis det bare er skiltet som fortsatt er valgt
+      if (obj.key === valgtSkiltKey) return;
 
-      // Sjekk om objektet i kjørefeltet har bounding box
+      setStatus(`⏳ Beregner siktepunkt på valgt flate (ID: ${obj.runtimeId})...`, 'warn');
+      await oppdaterKameraCache();
       const vegBox = await hentObjektBoks(obj.modelId, obj.runtimeId);
+
       if (vegBox) {
-        const dx = vegBox.max.x - vegBox.min.x;
-        const dy = vegBox.max.y - vegBox.min.y;
-        const xyDiag = Math.sqrt(dx*dx + dy*dy);
+        valgtFlateObj = { modelId: obj.modelId, runtimeId: obj.runtimeId, box: vegBox };
 
-        let px = (vegBox.min.x + vegBox.max.x) / 2;
-        let py = (vegBox.min.y + vegBox.max.y) / 2;
-        let pz = vegBox.max.z;
+        // Bruk kameraposisjonen/siktlinjen til å vite hvilken side av skiltet brukeren ser fra
+        let refX = (vegBox.min.x + vegBox.max.x) / 2;
+        let refY = (vegBox.min.y + vegBox.max.y) / 2;
+        let refZ = (vegBox.min.z + vegBox.max.z) / 2;
 
-        // Hvis vegobjektet er veldig langt (> 20m), prøv å kombinere med kameraets siktlinje (lookAt)
-        if (xyDiag > 20) {
-          let look = sisteKameraLookAt;
-          try {
-            const cam = await API.viewer.getCamera();
-            if (cam && (cam.lookAt || cam.target)) look = cam.lookAt || cam.target;
-          } catch (e) {}
-
-          if (look && look.x !== undefined) {
-            const faktor = (Math.abs(look.z) > 3000) ? 0.001 : 1.0;
-            const lx = look.x * faktor;
-            const ly = look.y * faktor;
-            const lz = look.z * faktor;
-            // Sjekk om kamerasenteret treffer innenfor (eller nær) vegobjektet
-            if (lx >= vegBox.min.x - 10 && lx <= vegBox.max.x + 10 &&
-                ly >= vegBox.min.y - 10 && ly <= vegBox.max.y + 10) {
-              px = lx;
-              py = ly;
-              pz = Math.max(vegBox.min.z, Math.min(vegBox.max.z, lz));
-            }
+        if (sisteKamera && sisteKamera.pos) {
+          refX = sisteKamera.pos.x;
+          refY = sisteKamera.pos.y;
+          if (sisteKamera.look &&
+              sisteKamera.look.z >= vegBox.min.z - 2 &&
+              sisteKamera.look.z <= vegBox.max.z + 2) {
+            refZ = sisteKamera.look.z;
           }
         }
-        registrerOyePunkt({ x: px, y: py, z: pz }, `fra vegobjekt ${obj.runtimeId}`);
+
+        klikkRefPunkt = { x: refX, y: refY, z: refZ, erEksaktPunkt: false };
+        retningFaktor = 1;
+        venterPaa = null;
+        await beregnOgTegnAlt();
+      } else {
+        setStatus('⚠️ Kunne ikke lese utstrekning på valgt flate. Prøv igjen.', 'error');
       }
     }
   } catch (err) {
@@ -335,7 +567,7 @@ async function aktiverVelgSkilt(lesEksisterende = true) {
   venterPaa = 'skilt';
   $('radSkilt').className = 'valg-rad aktiv';
   if (!oyePunkt) $('radPunkt').className = 'valg-rad';
-  setStatus('👉 Klikk på ønsket skiltplate i 3D-vinduet...', 'ok');
+  setStatus('👉 Steg 1: Klikk på ønsket skiltflate i 3D-vinduet...', 'ok');
 
   if (lesEksisterende && API) {
     try {
@@ -352,9 +584,8 @@ async function aktiverVelgPunkt(lesEksisterende = false) {
   venterPaa = 'punkt';
   if (skiltBox) $('radSkilt').className = 'valg-rad ferdig';
   $('radPunkt').className = 'valg-rad aktiv';
-  setStatus('👉 Klikk i kjørefeltet i 3D, sett en Punktmåling, eller trykk "🎯 Kamera"...', 'ok');
+  setStatus('👉 Steg 2: Klikk på kjørefelt-flaten i den retningen skiltet skal ses fra...', 'ok');
 
-  // Husk nåværende utvalg slik at vi venter på et NYTT klikk i 3D-vinduet
   if (API && !lesEksisterende) {
     try {
       const utvalg = await API.viewer.getSelection();
@@ -364,49 +595,18 @@ async function aktiverVelgPunkt(lesEksisterende = false) {
   }
 }
 
-$('btnSkilt').addEventListener('click', () => aktiverVelgSkilt(true));
-$('btnPunkt').addEventListener('click', () => aktiverVelgPunkt(false));
-
-// Hent siktpunkt direkte fra kameraets senterpunkt (lookAt)
-$('btnKameraPunkt').addEventListener('click', async () => {
-  if (!API) return;
-  try {
-    let look = sisteKameraLookAt;
-    const cam = await API.viewer.getCamera();
-    if (cam && (cam.lookAt || cam.target)) look = cam.lookAt || cam.target;
-    if (!look || look.x === undefined) {
-      setStatus('⚠️ Fant ikke kamerasenter. Roter litt i 3D-modellen og prøv igjen.', 'error');
-      return;
-    }
-    const faktor = (Math.abs(look.z) > 3000) ? 0.001 : 1.0;
-    registrerOyePunkt({
-      x: look.x * faktor,
-      y: look.y * faktor,
-      z: look.z * faktor
-    }, 'fra kamerasenter');
-  } catch (e) {
-    setStatus('❌ Kunne ikke lese kameraposisjon: ' + e.message, 'error');
-  }
-});
-
-// Finner de 4 hjørnene på skiltplaten som vender mot observatøren
+// Finner skiltets 4 hjørner og beregner siktavstand
 function beregnPyramideGeometri() {
-  const eyeOffset = parseFloat($('eyeHeight').value) || 0;
-  const start = {
-    x: oyePunkt.x,
-    y: oyePunkt.y,
-    z: oyePunkt.z + eyeOffset
-  };
+  const start = { x: oyePunkt.x, y: oyePunkt.y, z: oyePunkt.z };
+  const flatePkt = beregnetFlatePunkt || { x: oyePunkt.x, y: oyePunkt.y, z: oyePunkt.z };
 
   const cx = (skiltBox.min.x + skiltBox.max.x) / 2;
   const cy = (skiltBox.min.y + skiltBox.max.y) / 2;
   const cz = (skiltBox.min.z + skiltBox.max.z) / 2;
 
-  // Siktvektor i XY-planet
   const vx = cx - start.x;
   const vy = cy - start.y;
 
-  // Velg den horisontale diagonalen i skiltets bounding box som står mest vinkelrett på siktlinjen
   const dx = skiltBox.max.x - skiltBox.min.x;
   const dy = skiltBox.max.y - skiltBox.min.y;
   const kryssDiag1 = Math.abs(dx * vy - dy * vx);
@@ -428,57 +628,118 @@ function beregnPyramideGeometri() {
     { x: x1, y: y1, z: skiltBox.max.z }
   ];
 
-  const dist = Math.sqrt((cx - start.x)**2 + (cy - start.y)**2 + (cz - start.z)**2);
-  return { start, hjorner, dist };
+  const horisontalDist = Math.hypot(cx - start.x, cy - start.y);
+  const skraaDist = Math.hypot(cx - start.x, cy - start.y, cz - start.z);
+  return { start, flatePkt, hjorner, horisontalDist, skraaDist };
 }
 
-async function tegnPyramideMarkup(fargeRGBA) {
+// Tegner siktpyramiden (inkludert flateskravur og øyehøyde-stolpe) direkte i 3D-visningen
+async function tegnPyramideDirekteI3D() {
   if (!skiltBox || !oyePunkt) return;
-  const { start, hjorner, dist } = beregnPyramideGeometri();
+  const { start, flatePkt, hjorner, horisontalDist } = beregnPyramideGeometri();
 
-  // API.markup bruker millimeter
+  const erOk = aktivStatus === 'OK';
+  const hovedFarge = erOk
+    ? { r: 22, g: 163, b: 74, a: 255 }
+    : { r: 220, g: 38, b: 38, a: 255 };
+  const skravurFarge = erOk
+    ? { r: 34, g: 197, b: 94, a: 180 }
+    : { r: 239, g: 68, b: 68, a: 180 };
+
   const tilMm = p => ({ positionX: p.x * 1000, positionY: p.y * 1000, positionZ: p.z * 1000 });
   const startMm = tilMm(start);
+  const flateMm = tilMm(flatePkt);
   const hMm = hjorner.map(tilMm);
 
   const linjer = [
-    // 4 siktstråler fra øyepunkt til skilthjørner
-    { start: startMm, end: hMm[0], color: fargeRGBA },
-    { start: startMm, end: hMm[1], color: fargeRGBA },
-    { start: startMm, end: hMm[2], color: fargeRGBA },
-    { start: startMm, end: hMm[3], color: fargeRGBA },
-    // 4 kantlinjer rundt selve skiltplaten
-    { start: hMm[0], end: hMm[1], color: fargeRGBA },
-    { start: hMm[1], end: hMm[2], color: fargeRGBA },
-    { start: hMm[2], end: hMm[3], color: fargeRGBA },
-    { start: hMm[3], end: hMm[0], color: fargeRGBA }
+    // 1. Vertikal stolpe fra kjørefelt-flaten opp til øyehøyde (viser siktehøyden fysisk i 3D)
+    { start: flateMm, end: startMm, color: { r: 29, g: 78, b: 216, a: 255 } },
+    // 2. De 4 ytterkantene i siktpyramiden
+    { start: startMm, end: hMm[0], color: hovedFarge },
+    { start: startMm, end: hMm[1], color: hovedFarge },
+    { start: startMm, end: hMm[2], color: hovedFarge },
+    { start: startMm, end: hMm[3], color: hovedFarge },
+    // 3. Ramme rundt selve skiltplaten
+    { start: hMm[0], end: hMm[1], color: hovedFarge },
+    { start: hMm[1], end: hMm[2], color: hovedFarge },
+    { start: hMm[2], end: hMm[3], color: hovedFarge },
+    { start: hMm[3], end: hMm[0], color: hovedFarge }
   ];
+
+  // 4. Valgfri 3D-flateskravur slik at pyramiden fremstår som tette flater direkte i 3D-visningen
+  if ($('chkSurfaceFill').checked) {
+    const N = 4; // Antall mellomstråler per sideflate
+    for (let side = 0; side < 4; side++) {
+      const pA = hjorner[side];
+      const pB = hjorner[(side + 1) % 4];
+      for (let i = 1; i < N; i++) {
+        const t = i / N;
+        const kantPkt = tilMm({
+          x: pA.x + (pB.x - pA.x) * t,
+          y: pA.y + (pB.y - pA.y) * t,
+          z: pA.z + (pB.z - pA.z) * t
+        });
+        linjer.push({ start: startMm, end: kantPkt, color: skravurFarge });
+      }
+    }
+    // Tverrsnittsramme midtveis i pyramiden for tydelig 3D-dybdefølelse
+    const midt = hjorner.map(h => tilMm({
+      x: (start.x + h.x) / 2,
+      y: (start.y + h.y) / 2,
+      z: (start.z + h.z) / 2
+    }));
+    for (let i = 0; i < 4; i++) {
+      linjer.push({ start: midt[i], end: midt[(i + 1) % 4], color: skravurFarge });
+    }
+  }
 
   await API.markup.removeMarkups();
   await API.markup.addLineMarkups(linjer);
 
-  $('valDist').textContent = dist.toFixed(2);
-  $('eksportPanel').style.display = 'flex';
+  $('valDist').textContent = `${horisontalDist.toFixed(2)} m`;
+  $('valHeights').textContent = `${flatePkt.z.toFixed(2)}m → ${start.z.toFixed(2)}m`;
+  $('resultatPanel').style.display = 'flex';
+
+  setStatus(
+    `✅ Siktpyramide tegnet direkte i 3D (${horisontalDist.toFixed(1)} m, øyehøyde ${start.z.toFixed(2)} moh).`,
+    erOk ? 'ok' : 'error'
+  );
 }
 
-$('btnGenerer').addEventListener('click', async () => {
-  try {
-    setStatus('⏳ Beregner siktlinjer og tegner pyramide i 3D...', 'warn');
-    await tegnPyramideMarkup({ r: 29, g: 78, b: 216, a: 255 });
-    setStatus('✅ Siktpyramide tegnet! Velg Grønn eller Rød for fargesetting og IFC-eksport.', 'ok');
-  } catch (e) {
-    setStatus('❌ Feil ved tegning av pyramide: ' + e.message, 'error');
-  }
+// Hendelser for knapper og sanntidsoppdatering fra tekstfelt
+$('btnSkilt').addEventListener('click', () => aktiverVelgSkilt(true));
+$('btnPunkt').addEventListener('click', () => aktiverVelgPunkt(false));
+
+$('btnFlipDir').addEventListener('click', async () => {
+  retningFaktor *= -1;
+  await beregnOgTegnAlt();
 });
 
-// Genererer en ekte, lastbar IFC2X3-fil med 3D-volum (IfcFacetedBrep) og farge
-async function eksporterIFC(statusKode) {
+$('eyeHeight').addEventListener('change', () => beregnOgTegnAlt());
+$('sightReq').addEventListener('change', () => beregnOgTegnAlt());
+$('chkSurfaceFill').addEventListener('change', () => tegnPyramideDirekteI3D());
+
+// Fargeknapper som KUN oppdaterer 3D-visningen direkte (uten å laste ned IFC)
+$('btnColorGreen').addEventListener('click', async () => {
+  aktivStatus = 'OK';
+  $('btnColorGreen').classList.add('aktiv-farge');
+  $('btnColorRed').classList.remove('aktiv-farge');
+  await tegnPyramideDirekteI3D();
+});
+
+$('btnColorRed').addEventListener('click', async () => {
+  aktivStatus = 'HINDRET';
+  $('btnColorRed').classList.add('aktiv-farge');
+  $('btnColorGreen').classList.remove('aktiv-farge');
+  await tegnPyramideDirekteI3D();
+});
+
+// Separat knapp for IFC-eksport
+$('btnExportIFC').addEventListener('click', () => {
   if (!skiltBox || !oyePunkt) return;
 
-  const erOk = statusKode === 'OK';
-  await tegnPyramideMarkup(erOk ? { r: 22, g: 163, b: 74, a: 255 } : { r: 220, g: 38, b: 38, a: 255 });
-
-  const { start, hjorner, dist } = beregnPyramideGeometri();
+  const erOk = aktivStatus === 'OK';
+  const { start, hjorner, horisontalDist } = beregnPyramideGeometri();
   const rgb = erOk ? '0.13,0.75,0.30' : '0.90,0.18,0.18';
   const fargeNavn = erOk ? 'Sikt_OK_Gronn' : 'Sikt_Hindret_Rod';
   const tid = new Date().toISOString().slice(0, 19);
@@ -487,14 +748,14 @@ async function eksporterIFC(statusKode) {
   const ifc = `ISO-10303-21;
 HEADER;
 FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
-FILE_NAME('Siktpyramide_${statusKode}.ifc','${tid}',('Siktlinje v13.0'),('Norconsult'),'Trimble Connect Extension','Siktlinje v13.0','');
+FILE_NAME('Siktpyramide_${aktivStatus}.ifc','${tid}',('Siktlinje v14.0'),('Norconsult'),'Trimble Connect Extension','Siktlinje v14.0','');
 FILE_SCHEMA(('IFC2X3'));
 ENDSEC;
 DATA;
 #1=IFCPERSON($,'Norconsult',$,$,$,$,$,$);
 #2=IFCORGANIZATION($,'Norconsult Norge AS',$,$,$);
 #3=IFCPERSONANDORGANIZATION(#1,#2,$);
-#4=IFCAPPLICATION(#2,'13.0','Siktlinje Extension','Siktlinje');
+#4=IFCAPPLICATION(#2,'14.0','Siktlinje Extension','Siktlinje');
 #5=IFCOWNERHISTORY(#3,#4,$,.ADDED.,$,$,$,0);
 #6=IFCDIRECTION((1.,0.,0.));
 #7=IFCDIRECTION((0.,0.,1.));
@@ -546,7 +807,7 @@ DATA;
 #90=IFCSHAPEREPRESENTATION(#11,'Body','Brep',(#71));
 #91=IFCPRODUCTDEFINITIONSHAPE($,$,(#90));
 #92=IFCLOCALPLACEMENT(#22,#9);
-#93=IFCBUILDINGELEMENTPROXY('0SiktPyra${Date.now().toString().slice(-13)}',#5,'Siktpyramide ${statusKode}','Siktlengde: ${dist.toFixed(2)} m (Skilt ID ${valgtSkiltId})','Siktpyramide',#92,#91,$,.ELEMENT.);
+#93=IFCBUILDINGELEMENTPROXY('0SiktPyra${Date.now().toString().slice(-13)}',#5,'Siktpyramide ${aktivStatus}','Siktlengde: ${horisontalDist.toFixed(2)} m (Skilt ID ${valgtSkiltId})','Siktpyramide',#92,#91,$,.ELEMENT.);
 #94=IFCRELCONTAINEDINSPATIALSTRUCTURE('0SiktRelC0000000000001',#5,$,$,(#93),#23);
 ENDSEC;
 END-ISO-10303-21;`;
@@ -555,23 +816,21 @@ END-ISO-10303-21;`;
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Siktpyramide_${statusKode}_Skilt_${valgtSkiltId}.ifc`;
+  a.download = `Siktpyramide_${aktivStatus}_${Math.round(horisontalDist)}m_Skilt_${valgtSkiltId}.ifc`;
   a.click();
   URL.revokeObjectURL(url);
 
-  setStatus(`✅ 3D-pyramide farget og eksportert som Siktpyramide_${statusKode}_Skilt_${valgtSkiltId}.ifc!`, erOk ? 'ok' : 'error');
-}
-
-$('btnExportGreen').addEventListener('click', () => eksporterIFC('OK'));
-$('btnExportRed').addEventListener('click', () => eksporterIFC('HINDRET'));
+  setStatus(`💾 IFC-fil eksportert: Siktpyramide_${aktivStatus}_${Math.round(horisontalDist)}m_Skilt_${valgtSkiltId}.ifc`, 'ok');
+});
 
 $('btnReset').addEventListener('click', async () => {
-  valgtSkiltId = null; valgtSkiltKey = null; skiltBox = null; oyePunkt = null;
+  valgtSkiltId = null; valgtSkiltKey = null; skiltBox = null;
+  valgtFlateObj = null; klikkRefPunkt = null; beregnetFlatePunkt = null; oyePunkt = null;
   sisteSelectionKey = '';
   $('radSkilt').className = 'valg-rad'; $('skiltInfo').textContent = 'Ikke valgt';
   $('radPunkt').className = 'valg-rad'; $('punktInfo').textContent = 'Ikke valgt';
-  $('btnGenerer').disabled = true;
-  $('eksportPanel').style.display = 'none';
+  $('btnFlipDir').disabled = true;
+  $('resultatPanel').style.display = 'none';
   try { await API.markup.removeMarkups(); } catch (e) {}
   aktiverVelgSkilt(false);
 });
